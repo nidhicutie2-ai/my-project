@@ -1,0 +1,330 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vishal Fitness Gym</title>
+    <link rel="stylesheet" href="style.css">
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700;900&display=swap" rel="stylesheet">
+</head>
+<body>
+
+    <!-- Toast Notification Container -->
+    <div id="toast-container"></div>
+
+    <!-- Navigation -->
+    <nav class="navbar">
+        <div class="container nav-container">
+            <div class="logo">
+                <!-- Attached Logo -->
+                <img src="https://z-cdn-media.chatglm.cn/files/6e8c0527-a7c2-4d86-8d70-a2371acb88fd.jpeg?auth_key=1872466607-d5f4bbfce72e44ffbe27fe1fcf2c2328-0-f4f731e6600760dddd3780f79f4d2b47" alt="Vishal Fitness Logo">
+                <span>VISHAL FITNESS</span>
+            </div>
+            
+            <button class="btn-auth-trigger" onclick="toggleAuthModal()">Login / Signup</button>
+            
+            <!-- Mobile Menu Icon -->
+            <div class="mobile-menu-icon" onclick="toggleMobileMenu()">☰</div>
+        </div>
+    </nav>
+
+    <!-- Auth Modal (Hidden by default) -->
+    <div id="auth-modal" class="modal-overlay hidden">
+        <div class="modal-content">
+            <span class="close-btn" onclick="toggleAuthModal()">&times;</span>
+            
+            <div class="auth-tabs">
+                <div class="tab active" onclick="switchTab('login')">Login</div>
+                <div class="tab" onclick="switchTab('signup')">Signup</div>
+            </div>
+
+            <!-- Login Form -->
+            <div id="login-form-container" class="auth-form-container">
+                <form id="login-form">
+                    <div class="form-group">
+                        <label>Role</label>
+                        <select id="login-role" class="form-control">
+                            <option value="User">User</option>
+                            <option value="Admin">Admin</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Email</label>
+                        <input type="email" id="login-email" class="form-control" placeholder="user@example.com" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Password</label>
+                        <input type="password" id="login-password" class="form-control" required>
+                    </div>
+                    <button type="submit" class="btn-primary full-width">Login</button>
+                </form>
+            </div>
+
+            <!-- Signup Form -->
+            <div id="signup-form-container" class="auth-form-container hidden">
+                <form id="signup-form">
+                    <h3>Create Account</h3>
+                    
+                    <!-- Core Fields -->
+                    <div class="form-grid-2">
+                        <div class="form-group">
+                            <label>Full Name</label>
+                            <input type="text" id="reg-name" class="form-control" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Email</label>
+                            <input type="email" id="reg-email" class="form-control" required>
+                        </div>
+                    </div>
+                    <div class="form-grid-2">
+                        <div class="form-group">
+                            <label>Password</label>
+                            <input type="password" id="reg-pass" class="form-control" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Confirm Password</label>
+                            <input type="password" id="reg-confirm-pass" class="form-control" required>
+                        </div>
+                    </div>
+                    
+                    <!-- Member Specific -->
+                    <div class="form-grid-2">
+                        <div class="form-group">
+                            <label>Phone Number</label>
+                            <input type="tel" id="reg-phone" class="form-control" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Role</label>
+                            <select id="reg-role" class="form-control">
+                                <option value="Member" selected>Member</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="form-grid-2">
+                        <div class="form-group">
+                            <label>Gender</label>
+                            <select id="reg-gender" class="form-control">
+                                <option>Male</option>
+                                <option>Female</option>
+                                <option>Other</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Date of Birth</label>
+                            <input type="date" id="reg-dob" class="form-control">
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Address</label>
+                        <input type="text" id="reg-address" class="form-control" required>
+                    </div>
+
+                    <div class="form-grid-2">
+                        <div class="form-group">
+                            <label>Emergency Contact Name</label>
+                            <input type="text" id="reg-emergency-name" class="form-control" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Emergency Phone</label>
+                            <input type="tel" id="reg-emergency-phone" class="form-control" required>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Medical Conditions (Optional)</label>
+                        <textarea id="reg-medical" class="form-control" rows="2"></textarea>
+                    </div>
+
+                    <!-- Fitness Goal & Membership -->
+                    <div class="form-grid-2">
+                        <div class="form-group">
+                            <label>Fitness Goal</label>
+                            <select id="reg-goal" class="form-control" onchange="handleGoalChange(this)">
+                                <option value="Weight Loss">Weight Loss</option>
+                                <option value="Muscle Gain">Muscle Gain</option>
+                                <option value="Other">Other</option>
+                            </select>
+                            <!-- Dynamic Textbox for 'Other' -->
+                            <input type="text" id="reg-goal-other" class="form-control hidden" placeholder="Specify Goal" style="margin-top:5px;">
+                        </div>
+                        <div class="form-group">
+                            <label>Membership Plan</label>
+                            <select id="reg-plan" class="form-control">
+                                <option>Monthly</option>
+                                <option>Quarterly</option>
+                                <option>Half Yearly</option>
+                                <option>Annual</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="form-grid-2">
+                        <div class="form-group">
+                            <label>Start Date</label>
+                            <input type="date" id="reg-start-date" class="form-control" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Payment Mode</label>
+                            <select id="reg-payment" class="form-control">
+                                <option>UPI</option>
+                                <option>Card</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Amount Paid?</label>
+                        <div class="radio-group">
+                            <label><input type="radio" name="paid" value="Yes" required> Yes</label>
+                            <label><input type="radio" name="paid" value="No"> No</label>
+                        </div>
+                    </div>
+
+                    <button type="submit" class="btn-secondary full-width">Register</button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Landing Page / Hero Section -->
+    <section class="hero-section">
+        <!-- Attached Background Image -->
+        <div class="hero-bg"></div> 
+        <div class="hero-overlay"></div>
+        
+        <div class="container hero-content">
+            <h1>LITTLE PAIN TO A BIG DIFFERENCE</h1>
+            <p>Join Vishal Fitness today and transform your life.</p>
+
+            <div class="hero-actions">
+                <button class="btn-primary large-btn" onclick="toggleAuthModal()">Join Now</button>
+            </div>
+        </div>
+    </section>
+
+    <!-- NEW ENQUIRY SECTION STARTS HERE -->
+    <section class="enquiry-section">
+        <div class="enquiry-bg"></div>
+        <div class="enquiry-overlay"></div>
+
+        <div class="container enquiry-wrapper">
+            <div class="enquiry-card">
+                <h2 class="enquiry-title">Start Your Transformation</h2>
+                <p class="enquiry-subtitle">Fill out the form below and our team will contact you shortly.</p>
+
+                <form id="enquiry-form">
+                    
+                    <!-- Section 1: Basic Contact Information -->
+                    <div class="form-section-title">📌 Contact Information</div>
+                    <div class="enquiry-grid">
+                        <div class="form-group">
+                            <label>Full Name <span class="mandatory">*</span></label>
+                            <input type="text" id="enq-name" class="form-control" placeholder="John Doe" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Phone Number <span class="mandatory">*</span></label>
+                            <input type="tel" id="enq-phone" class="form-control" placeholder="9876543210" required>
+                        </div>
+                    </div>
+                    <div class="enquiry-grid">
+                        <div class="form-group">
+                            <label>Email Address <span class="mandatory">*</span></label>
+                            <input type="email" id="enq-email" class="form-control" placeholder="john@example.com" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Preferred Contact Method <span class="mandatory">*</span></label>
+                            <div class="radio-group-flex">
+                                <label class="radio-label"><input type="radio" name="enq-contact-method" value="Call" checked> Call</label>
+                                <label class="radio-label"><input type="radio" name="enq-contact-method" value="WhatsApp"> WhatsApp</label>
+                                <label class="radio-label"><input type="radio" name="enq-contact-method" value="Email"> Email</label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Section 2: Fitness Interest Information -->
+                    <div class="form-section-title">🏋️ Fitness Interest</div>
+                    <div class="form-group">
+                        <label>Primary Goal <span class="mandatory">*</span></label>
+                        <div class="radio-group-flex">
+                            <label class="radio-label"><input type="radio" name="enq-goal" value="Weight Loss" checked onchange="toggleEnqOther(this)"> Weight Loss</label>
+                            <label class="radio-label"><input type="radio" name="enq-goal" value="Muscle Gain" onchange="toggleEnqOther(this)"> Muscle Gain</label>
+                            <label class="radio-label"><input type="radio" name="enq-goal" value="General Fitness" onchange="toggleEnqOther(this)"> General Fitness</label>
+                            <label class="radio-label"><input type="radio" name="enq-goal" value="Other" onchange="toggleEnqOther(this)"> Other</label>
+                        </div>
+                        <input type="text" id="enq-goal-other" class="form-control hidden" placeholder="Please specify your goal" style="margin-top: 10px;">
+                    </div>
+
+                    <!-- Section 3: Membership Intent -->
+                    <div class="form-section-title">💳 Membership Intent</div>
+                    <div class="form-group">
+                        <label>Preferred Plan <span class="mandatory">*</span></label>
+                        <div class="radio-group-flex">
+                            <label class="radio-label"><input type="radio" name="enq-plan" value="Monthly"> Monthly</label>
+                            <label class="radio-label"><input type="radio" name="enq-plan" value="Quarterly"> Quarterly</label>
+                            <label class="radio-label"><input type="radio" name="enq-plan" value="Half-Yearly"> Half-Yearly</label>
+                            <label class="radio-label"><input type="radio" name="enq-plan" value="Annual"> Annual</label>
+                        </div>
+                    </div>
+                    <div class="enquiry-grid">
+                        <div class="form-group">
+                            <label>Preferred Start Date <span class="mandatory">*</span></label>
+                            <input type="date" id="enq-start-date" class="form-control" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Budget Range (Optional)</label>
+                            <select id="enq-budget" class="form-control">
+                                <option value="">Select Budget</option>
+                                <option value="Below 2000">Below ₹2000</option>
+                                <option value="2000-5000">₹2000 – ₹5000</option>
+                                <option value="5000+">₹5000+</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Section 4: Availability & Schedule -->
+                    <div class="form-section-title">⏰ Availability & Schedule</div>
+                    <div class="form-group">
+                        <label>Preferred Workout Time <span class="mandatory">*</span></label>
+                        <div class="radio-group-flex">
+                            <label class="radio-label"><input type="radio" name="enq-time" value="Morning"> Morning</label>
+                            <label class="radio-label"><input type="radio" name="enq-time" value="Afternoon"> Afternoon</label>
+                            <label class="radio-label"><input type="radio" name="enq-time" value="Evening"> Evening</label>
+                            <label class="radio-label"><input type="radio" name="enq-time" value="Flexible"> Flexible</label>
+                        </div>
+                    </div>
+
+                    <div class="enquiry-actions">
+                        <button type="submit" class="btn-primary large-btn full-width-btn">Send Enquiry</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </section>
+    <!-- NEW ENQUIRY SECTION ENDS HERE -->
+
+    <!-- Dashboard Placeholder (Visible after login) -->
+    <section id="user-dashboard" class="dashboard-section hidden container">
+        <h2 id="welcome-msg">Welcome</h2>
+        <div class="dashboard-cards">
+            <div class="card">
+                <h3>Profile</h3>
+                <p>Manage your details</p>
+            </div>
+            <div class="card">
+                <h3>Membership</h3>
+                <p>View active plans</p>
+            </div>
+            <div class="card">
+                <h3>Trainers</h3>
+                <p>Book a session</p>
+            </div>
+        </div>
+        <button class="btn-outline" onclick="logout()">Logout</button>
+    </section>
+
+    <script src="script.js"></script>
+</body>
+</html>
