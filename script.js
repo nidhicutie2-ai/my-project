@@ -10,7 +10,6 @@ let currentUser = null;
 function toggleAuthModal() {
     const modal = document.getElementById('auth-modal');
     modal.classList.toggle('hidden');
-    // Small delay to allow display:block to apply before adding opacity class
     setTimeout(() => {
         modal.classList.toggle('active');
     }, 10);
@@ -34,21 +33,7 @@ function switchTab(tabName) {
     }
 }
 
-// --- Dynamic UI Logic (Auth) ---
-function handleGoalChange(select) {
-    const otherInput = document.getElementById('reg-goal-other');
-    if (select.value === 'Other') {
-        otherInput.classList.remove('hidden');
-        otherInput.required = true;
-    } else {
-        otherInput.classList.add('hidden');
-        otherInput.required = false;
-    }
-}
-
-// --- Validation & Submission (Auth) ---
-
-// Login Logic
+// --- Login Logic (Unchanged) ---
 document.getElementById('login-form').addEventListener('submit', function(e) {
     e.preventDefault();
     
@@ -56,24 +41,18 @@ document.getElementById('login-form').addEventListener('submit', function(e) {
     const email = document.getElementById('login-email').value;
     const pass = document.getElementById('login-password').value;
 
-    // Email Format Validation
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email)) {
         showToast("Invalid email format.", "error");
         return;
     }
 
-    // Find User
     const user = users.find(u => u.email === email && u.pass === pass);
 
     if (!user) {
         showToast("Invalid credentials.", "error");
         return;
     }
-
-    // Role Based Validation (Constraint)
-    // 1. If user is Admin in DB, but selects 'User' in dropdown -> Deny
-    // 2. If user is Member in DB, but selects 'Admin' in dropdown -> Deny
     
     if (user.role === 'Admin' && role !== 'Admin') {
         showToast("Admins cannot login as Users.", "error");
@@ -85,20 +64,24 @@ document.getElementById('login-form').addEventListener('submit', function(e) {
         return;
     }
 
-    // Success
     currentUser = user;
     loginSuccess(user);
 });
 
-// Signup Logic
+// --- UPDATED Signup Logic ---
 document.getElementById('signup-form').addEventListener('submit', function(e) {
     e.preventDefault();
 
+    // Gather values based on NEW Form Fields
     const name = document.getElementById('reg-name').value;
     const email = document.getElementById('reg-email').value;
     const pass = document.getElementById('reg-pass').value;
     const confirmPass = document.getElementById('reg-confirm-pass').value;
+    const phone = document.getElementById('reg-phone').value;
     const role = document.getElementById('reg-role').value;
+    const gender = document.getElementById('reg-gender').value;
+    const dob = document.getElementById('reg-dob').value;
+    const address = document.getElementById('reg-address').value;
 
     // 1. Email Unique Validation
     if (users.some(u => u.email === email)) {
@@ -112,12 +95,16 @@ document.getElementById('signup-form').addEventListener('submit', function(e) {
         return;
     }
 
-    // Create User Object
+    // Create User Object (Updated to include new fields)
     const newUser = {
         name: name,
         email: email,
         pass: pass,
-        role: role
+        role: role,
+        phone: phone,
+        gender: gender,
+        dob: dob,
+        address: address
     };
 
     users.push(newUser);
@@ -128,10 +115,7 @@ document.getElementById('signup-form').addEventListener('submit', function(e) {
     switchTab('login');
 });
 
-
-// --- NEW: Enquiry Form Logic ---
-
-// Toggle "Other" Goal Textbox in Enquiry Form
+// --- Enquiry Form Logic (Unchanged) ---
 function toggleEnqOther(radio) {
     const otherInput = document.getElementById('enq-goal-other');
     if (radio.value === 'Other' && radio.checked) {
@@ -143,23 +127,15 @@ function toggleEnqOther(radio) {
     }
 }
 
-// Enquiry Form Submission
 document.getElementById('enquiry-form').addEventListener('submit', function(e) {
     e.preventDefault();
-
-    // Gather Values
     const name = document.getElementById('enq-name').value.trim();
     const phone = document.getElementById('enq-phone').value.trim();
     const email = document.getElementById('enq-email').value.trim();
     const goalRadios = document.getElementsByName('enq-goal');
     let goal = null;
-    
-    // Get selected goal
-    for(const radio of goalRadios) {
-        if(radio.checked) goal = radio.value;
-    }
+    for(const radio of goalRadios) { if(radio.checked) goal = radio.value; }
 
-    // Validate 'Other' Goal Text
     if (goal === 'Other') {
         const otherText = document.getElementById('enq-goal-other').value.trim();
         if (!otherText) {
@@ -170,54 +146,31 @@ document.getElementById('enquiry-form').addEventListener('submit', function(e) {
         goal = otherText;
     }
 
-    // Basic Validations
-    if (name.length < 2) {
-        showToast("Please enter a valid name.", "error");
-        return;
-    }
-
-    if (phone.length < 10) {
-        showToast("Please enter a valid phone number.", "error");
-        return;
-    }
-
+    if (name.length < 2) { showToast("Please enter a valid name.", "error"); return; }
+    if (phone.length < 10) { showToast("Please enter a valid phone number.", "error"); return; }
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(email)) {
-        showToast("Invalid email format.", "error");
-        return;
-    }
+    if (!emailRegex.test(email)) { showToast("Invalid email format.", "error"); return; }
 
-    // Simulate API Call / Submission
     const btn = this.querySelector('button[type="submit"]');
     const originalText = btn.innerText;
     btn.innerText = "Sending...";
     btn.disabled = true;
 
     setTimeout(() => {
-        console.log("Enquiry Submitted:", { name, phone, email, goal });
-        showToast("Enquiry Sent Successfully! We will contact you soon.", "success");
-        
-        // Reset Form
+        showToast("Enquiry Sent Successfully!", "success");
         this.reset();
-        // Ensure hidden fields are reset visually
         document.getElementById('enq-goal-other').classList.add('hidden');
-        
         btn.innerText = originalText;
         btn.disabled = false;
     }, 1500);
 });
 
-
 // --- Helper Functions ---
-
 function loginSuccess(user) {
     showToast(`Welcome, ${user.name}!`, "success");
-    toggleAuthModal(); // Close modal
-    
-    // Hide Hero, Show Dashboard
+    toggleAuthModal();
     document.querySelector('.hero-section').style.display = 'none';
-    document.querySelector('.navbar').style.display = 'none'; // Optional: Hide nav or change it
-    
+    document.querySelector('.navbar').style.display = 'none';
     const dashboard = document.getElementById('user-dashboard');
     dashboard.classList.remove('hidden');
     document.getElementById('welcome-msg').innerText = `Welcome, ${user.name} (${user.role})`;
@@ -236,13 +189,8 @@ function showToast(message, type = "success") {
     const toast = document.createElement('div');
     toast.className = `toast ${type}`;
     toast.innerText = message;
-    
     container.appendChild(toast);
-    
-    // Remove after 3 seconds
-    setTimeout(() => {
-        toast.remove();
-    }, 3000);
+    setTimeout(() => { toast.remove(); }, 3000);
 }
 
 function toggleMobileMenu() {
