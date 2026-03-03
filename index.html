@@ -5,12 +5,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Vishal Fitness Gym</title>
     <link rel="stylesheet" href="style.css">
-    <!-- Google Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700;900&display=swap" rel="stylesheet">
 </head>
 <body>
 
-    <!-- Toast Notification Container -->
     <div id="toast-container"></div>
 
     <!-- Navigation -->
@@ -20,25 +18,21 @@
                 <img src="https://z-cdn-media.chatglm.cn/files/6e8c0527-a7c2-4d86-8d70-a2371acb88fd.jpeg?auth_key=1872466607-d5f4bbfce72e44ffbe27fe1fcf2c2328-0-f4f731e6600760dddd3780f79f4d2b47" alt="Vishal Fitness Logo">
                 <span>VISHAL FITNESS</span>
             </div>
-            
             <button class="btn-auth-trigger" onclick="toggleAuthModal()">Login / Signup</button>
-            
-            <!-- Mobile Menu Icon -->
             <div class="mobile-menu-icon" onclick="toggleMobileMenu()">☰</div>
         </div>
     </nav>
 
-    <!-- Auth Modal (Hidden by default) -->
+    <!-- Auth Modal -->
     <div id="auth-modal" class="modal-overlay hidden">
         <div class="modal-content">
             <span class="close-btn" onclick="toggleAuthModal()">&times;</span>
-            
             <div class="auth-tabs">
                 <div class="tab active" onclick="switchTab('login')">Login</div>
                 <div class="tab" onclick="switchTab('signup')">Signup</div>
             </div>
 
-            <!-- Login Form (Unchanged) -->
+            <!-- Login Form -->
             <div id="login-form-container" class="auth-form-container">
                 <form id="login-form">
                     <div class="form-group">
@@ -60,22 +54,18 @@
                 </form>
             </div>
 
-            <!-- UPDATED Signup Form -->
+            <!-- Signup Form -->
             <div id="signup-form-container" class="auth-form-container hidden">
                 <form id="signup-form">
                     <h3>Create Account</h3>
-                    
-                    <!-- Core Fields -->
                     <div class="form-group">
                         <label>Full Name</label>
                         <input type="text" id="reg-name" class="form-control" required>
                     </div>
-                    
                     <div class="form-group">
                         <label>Email</label>
                         <input type="email" id="reg-email" class="form-control" required>
                     </div>
-
                     <div class="form-grid-2">
                         <div class="form-group">
                             <label>Password</label>
@@ -86,12 +76,11 @@
                             <input type="password" id="reg-confirm-pass" class="form-control" required>
                         </div>
                     </div>
-                    
-                    <!-- Contact & Role -->
                     <div class="form-grid-2">
                         <div class="form-group">
                             <label>Phone Number</label>
-                            <input type="tel" id="reg-phone" class="form-control" required>
+                            <!-- Updated: type="tel" for mobile numeric keyboard -->
+                            <input type="tel" id="reg-phone" class="form-control" placeholder="10-digit number" required>
                         </div>
                         <div class="form-group">
                             <label>Role</label>
@@ -100,8 +89,6 @@
                             </select>
                         </div>
                     </div>
-
-                    <!-- Gender & DOB -->
                     <div class="form-grid-2">
                         <div class="form-group">
                             <label>Gender</label>
@@ -113,27 +100,24 @@
                         </div>
                         <div class="form-group">
                             <label>Date of Birth</label>
-                            <input type="date" id="reg-dob" class="form-control">
+                            <!-- Updated: Max date handled in JS, min="1950-01-01" -->
+                            <input type="date" id="reg-dob" class="form-control" min="1950-01-01" required>
                         </div>
                     </div>
-
-                    <!-- Address -->
                     <div class="form-group">
                         <label>Address</label>
                         <input type="text" id="reg-address" class="form-control" required>
                     </div>
-
                     <button type="submit" class="btn-secondary full-width">Register</button>
                 </form>
             </div>
         </div>
     </div>
 
-    <!-- Landing Page / Hero Section -->
+    <!-- Hero Section -->
     <section class="hero-section">
         <div class="hero-bg"></div> 
         <div class="hero-overlay"></div>
-        
         <div class="container hero-content">
             <h1>LITTLE PAIN TO A BIG DIFFERENCE</h1>
             <p>Join Vishal Fitness today and transform your life.</p>
@@ -143,7 +127,7 @@
         </div>
     </section>
 
-    <!-- Enquiry Section (Unchanged) -->
+    <!-- Enquiry Section -->
     <section class="enquiry-section">
         <div class="enquiry-bg"></div>
         <div class="enquiry-overlay"></div>
@@ -231,7 +215,208 @@
         </div>
     </section>
 
-    <!-- Dashboard Placeholder -->
+    <!-- NEW MEMBERSHIP REGISTRATION SECTION -->
+    <section id="membership-section" class="hidden container">
+        <div class="membership-container">
+            <div class="membership-header">
+                <h2>Complete Your Membership Registration</h2>
+                <p>Please fill out the details below to activate your account.</p>
+            </div>
+
+            <form id="membership-form">
+                <!-- 1. Personal Information -->
+                <div class="form-block">
+                    <h3>🔹 Personal Information</h3>
+                    <div class="form-grid-2">
+                        <div class="form-group">
+                            <label>Full Name</label>
+                            <input type="text" id="mem-name" class="form-control" readonly style="background: #333; cursor: not-allowed;">
+                        </div>
+                        <div class="form-group">
+                            <label>Gender</label>
+                            <select id="mem-gender" class="form-control" required>
+                                <option value="Male">Male</option>
+                                <option value="Female">Female</option>
+                                <option value="Other">Other</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="form-grid-2">
+                        <div class="form-group">
+                            <label>Date of Birth</label>
+                            <input type="date" id="mem-dob" class="form-control" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Phone Number</label>
+                            <input type="tel" id="mem-phone" class="form-control" readonly style="background: #333; cursor: not-allowed;">
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>Email Address</label>
+                        <input type="email" id="mem-email" class="form-control" readonly style="background: #333; cursor: not-allowed;">
+                    </div>
+                    <div class="form-group">
+                        <label>Residential Address</label>
+                        <input type="text" id="mem-address" class="form-control" required>
+                    </div>
+                    <!-- Government ID Section -->
+                    <div class="form-grid-2">
+                        <div class="form-group">
+                            <label>ID Type (e.g., Aadhar, PAN)</label>
+                            <input type="text" id="mem-govt-id-name" class="form-control" placeholder="Enter ID Name" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Upload ID Proof</label>
+                            <input type="file" id="mem-govt-id-file" class="form-control" accept="image/*,.pdf" required>
+                            <small style="color: #888; font-size: 0.8rem;">Formats: JPG, PNG, PDF</small>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 2. Emergency Contact -->
+                <div class="form-block">
+                    <h3>🚨 Emergency Contact Details</h3>
+                    <div class="form-grid-2">
+                        <div class="form-group">
+                            <label>Contact Name</label>
+                            <input type="text" id="mem-emer-name" class="form-control" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Relationship</label>
+                            <input type="text" id="mem-emer-rel" class="form-control" required>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>Emergency Phone Number</label>
+                        <!-- Updated: type="tel" for numeric input -->
+                        <input type="tel" id="mem-emer-phone" class="form-control" placeholder="10-digit number" required>
+                    </div>
+                </div>
+
+                <!-- 3. Medical Info -->
+                <div class="form-block">
+                    <h3>🩺 Health & Medical Information</h3>
+                    <div class="form-group">
+                        <label>Do you have any medical conditions?</label>
+                        <div class="radio-group-flex">
+                            <label class="radio-label"><input type="radio" name="mem-med-cond" value="No" checked onchange="toggleMedCond(false)"> No</label>
+                            <label class="radio-label"><input type="radio" name="mem-med-cond" value="Yes" onchange="toggleMedCond(true)"> Yes</label>
+                        </div>
+                    </div>
+                    <div class="form-group hidden" id="med-desc-group">
+                        <label>Description</label>
+                        <textarea id="mem-med-desc" class="form-control" rows="3"></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label>Specific Conditions (Select if applicable)</label>
+                        <div class="checkbox-group">
+                            <label><input type="checkbox" name="med-check" value="BP"> Blood Pressure</label>
+                            <label><input type="checkbox" name="med-check" value="Diabetes"> Diabetes</label>
+                            <label><input type="checkbox" name="med-check" value="Heart"> Heart Conditions</label>
+                            <label><input type="checkbox" name="med-check" value="Allergies"> Allergies</label>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 4. Fitness Preferences -->
+                <div class="form-block">
+                    <h3>🏋 Fitness Goals & Preferences</h3>
+                    <div class="form-group">
+                        <label>Primary Goal</label>
+                        <!-- Updated: Added onchange event and "Other" option -->
+                        <select id="mem-goal" class="form-control" onchange="toggleMemGoalOther(this)" required>
+                            <option value="Weight Loss">Weight Loss</option>
+                            <option value="Muscle Gain">Muscle Gain</option>
+                            <option value="General Fitness">General Fitness</option>
+                            <option value="Other">Other</option>
+                        </select>
+                        <!-- Updated: Added hidden input for "Other" -->
+                        <input type="text" id="mem-goal-other" class="form-control hidden" placeholder="Please specify your goal" style="margin-top: 10px;">
+                    </div>
+                    <div class="form-group">
+                        <label>Preferred Workout Time</label>
+                        <select id="mem-time" class="form-control" required>
+                            <option value="Morning">Morning</option>
+                            <option value="Afternoon">Afternoon</option>
+                            <option value="Evening">Evening</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Previous Gym Experience?</label>
+                        <select id="mem-exp" class="form-control" required>
+                            <option value="No">No</option>
+                            <option value="Yes">Yes</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- 5. Plan Details -->
+                <div class="form-block">
+                    <h3>💳 Membership Plan Details</h3>
+                    <div class="form-grid-2">
+                        <div class="form-group">
+                            <label>Select Plan</label>
+                            <select id="mem-plan" class="form-control" onchange="calculateMembershipDates()" required>
+                                <option value="Monthly">Monthly (₹1000)</option>
+                                <option value="Quarterly">Quarterly (₹2800)</option>
+                                <option value="Half-Yearly">Half-Yearly (₹5000)</option>
+                                <option value="Annual">Annual (₹9000)</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Start Date</label>
+                            <!-- Constraints handled in JS -->
+                            <input type="date" id="mem-start-date" class="form-control" onchange="calculateMembershipDates()" required>
+                        </div>
+                    </div>
+                    <div class="form-grid-2">
+                        <div class="form-group">
+                            <label>End Date (Auto-calculated)</label>
+                            <input type="date" id="mem-end-date" class="form-control" readonly>
+                        </div>
+                        <div class="form-group">
+                            <label>Total Amount</label>
+                            <input type="text" id="mem-amount" class="form-control" readonly value="₹1000">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 6. Payment -->
+                <div class="form-block">
+                    <h3>💰 Payment Details</h3>
+                    <div class="form-group">
+                        <label>Payment Mode</label>
+                        <select id="mem-payment-mode" class="form-control" required>
+                            <option value="UPI">UPI</option>
+                            <option value="Card">Card</option>
+                            <option value="Net Banking">Net Banking</option>
+                            <option value="Cash">Cash</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- 7. Legal -->
+                <div class="form-block">
+                    <h3>📜 Legal & Consent</h3>
+                    <div class="form-group">
+                        <label>Upload Digital Signature</label>
+                        <input type="file" id="mem-signature-file" class="form-control" accept="image/*" required>
+                        <small style="color: #888; font-size: 0.8rem;">Upload a clear image of your signature.</small>
+                    </div>
+                    <div class="form-group">
+                        <label>Date of Submission</label>
+                        <input type="text" id="mem-sub-date" class="form-control" readonly>
+                    </div>
+                </div>
+
+                <div class="form-actions">
+                    <button type="submit" class="btn-primary large-btn full-width-btn">Submit & Activate Membership</button>
+                </div>
+            </form>
+        </div>
+    </section>
+
+    <!-- User Dashboard -->
     <section id="user-dashboard" class="dashboard-section hidden container">
         <h2 id="welcome-msg">Welcome</h2>
         <div class="dashboard-cards">
