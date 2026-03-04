@@ -1,8 +1,5 @@
-// Mock Database
-let users = [
-    { name: "Admin", email: "admin@vishal.com", pass: "admin123", role: "Admin", hasCompletedMembership: true },
-    { name: "Test User", email: "user@vishal.com", pass: "user123", role: "Member", hasCompletedMembership: false }
-];
+// API Base URL
+const API_BASE_URL = 'http://localhost:3000/api';
 
 let currentUser = null;
 
@@ -14,7 +11,6 @@ function toggleAuthModal() {
         modal.classList.toggle('active');
     }, 10);
     
-    // If opening the modal, set Date constraints
     if (!modal.classList.contains('hidden')) {
         setDateConstraints();
     }
@@ -38,12 +34,11 @@ function switchTab(tabName) {
     }
 }
 
-// --- Helper: Set Date Constraints on Page Load / Modal Open ---
+// --- Helper: Set Date Constraints ---
 function setDateConstraints() {
     const today = new Date();
     const todayStr = today.toISOString().split('T')[0];
 
-    // 1. Signup DOB: Max = Today, Min = 1950-01-01
     const regDob = document.getElementById('reg-dob');
     if(regDob) {
         regDob.max = todayStr;
@@ -51,11 +46,10 @@ function setDateConstraints() {
     }
 }
 
-// Call once on load
 setDateConstraints();
 
 // --- Login Logic ---
-document.getElementById('login-form').addEventListener('submit', function(e) {
+document.getElementById('login-form').addEventListener('submit', async function(e) {
     e.preventDefault();
     
     const role = document.getElementById('login-role').value;
@@ -68,29 +62,32 @@ document.getElementById('login-form').addEventListener('submit', function(e) {
         return;
     }
 
-    const user = users.find(u => u.email === email && u.pass === pass);
+    try {
+        const response = await fetch(`${API_BASE_URL}/auth/login`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ email, pass, role })
+        });
 
-    if (!user) {
-        showToast("Invalid credentials.", "error");
-        return;
-    }
-    
-    if (user.role === 'Admin' && role !== 'Admin') {
-        showToast("Admins cannot login as Users.", "error");
-        return;
-    }
-    
-    if (user.role === 'Member' && role === 'Admin') {
-        showToast("Members cannot access Admin portal.", "error");
-        return;
-    }
+        const data = await response.json();
 
-    currentUser = user;
-    loginSuccess(user);
+        if (!data.success) {
+            showToast(data.message, "error");
+            return;
+        }
+
+        currentUser = data.user;
+        loginSuccess(currentUser);
+    } catch (error) {
+        console.error('Login error:', error);
+        showToast("Server error. Please try again.", "error");
+    }
 });
 
 // --- Signup Logic ---
-document.getElementById('signup-form').addEventListener('submit', function(e) {
+document.getElementById('signup-form').addEventListener('submit', async function(e) {
     e.preventDefault();
 
     const name = document.getElementById('reg-name').value;
@@ -98,32 +95,25 @@ document.getElementById('signup-form').addEventListener('submit', function(e) {
     const pass = document.getElementById('reg-pass').value;
     const confirmPass = document.getElementById('reg-confirm-pass').value;
     const phone = document.getElementById('reg-phone').value;
-    const role = document.getElementById('reg-role').value;
     const gender = document.getElementById('reg-gender').value;
     const dob = document.getElementById('reg-dob').value;
     const address = document.getElementById('reg-address').value;
 
-    // --- NEW: Phone Validation ---
-    // Must be numeric and exactly 10 digits
+    // Phone Validation
     const phoneRegex = /^[0-9]{10}$/;
     if (!phoneRegex.test(phone)) {
         showToast("Phone number must be exactly 10 digits.", "error");
         return;
     }
 
-    // --- NEW: DOB Validation ---
+    // DOB Validation
     const selectedDob = new Date(dob);
     const today = new Date();
-    today.setHours(0,0,0,0); // Reset time part for accurate comparison
+    today.setHours(0,0,0,0);
     selectedDob.setHours(0,0,0,0);
 
     if (selectedDob > today) {
         showToast("Date of Birth cannot be in the future.", "error");
-        return;
-    }
-
-    if (users.some(u => u.email === email)) {
-        showToast("Email already exists.", "error");
         return;
     }
 
@@ -132,22 +122,29 @@ document.getElementById('signup-form').addEventListener('submit', function(e) {
         return;
     }
 
-    const newUser = {
-        name: name,
-        email: email,
-        pass: pass,
-        role: role,
-        phone: phone,
-        gender: gender,
-        dob: dob,
-        address: address,
-        hasCompletedMembership: false 
-    };
+    try {
+        const response = await fetch(`${API_BASE_URL}/auth/signup`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ name, email, pass, phone, gender, dob, address })
+        });
 
-    users.push(newUser);
-    showToast("Signup Successful! Please Login.", "success");
-    this.reset();
-    switchTab('login');
+        const data = await response.json();
+
+        if (!data.success) {
+            showToast(data.message, "error");
+            return;
+        }
+
+        showToast("Signup Successful! Please Login.", "success");
+        this.reset();
+        switchTab('login');
+    } catch (error) {
+        console.error('Signup error:', error);
+        showToast("Server error. Please try again.", "error");
+    }
 });
 
 // --- Login Success Logic ---
@@ -159,7 +156,7 @@ function loginSuccess(user) {
     document.querySelector('.navbar').style.display = 'none'; 
     document.querySelector('.enquiry-section').style.display = 'none';
 
-    if (user.role === 'Admin' || user.hasCompletedMembership) {
+    if (user.role === 'Admin' || user.has_completed_membership) {
         showDashboard(user);
     } else {
         showMembershipForm(user);
@@ -173,39 +170,31 @@ function showDashboard(user) {
 }
 
 // --- Membership Form Logic ---
-
 function showMembershipForm(user) {
     const memSection = document.getElementById('membership-section');
     memSection.classList.remove('hidden');
 
-    // Auto-fill fields
     document.getElementById('mem-name').value = user.name || '';
     document.getElementById('mem-email').value = user.email || '';
     document.getElementById('mem-phone').value = user.phone || '';
     document.getElementById('mem-address').value = user.address || '';
     document.getElementById('mem-gender').value = user.gender || 'Male';
-    if(user.dob) document.getElementById('mem-dob').value = user.dob;
+    if(user.dob) document.getElementById('mem-dob').value = user.dob.split('T')[0];
 
-    // Set Submission Date
     const today = new Date().toISOString().split('T')[0];
     document.getElementById('mem-sub-date').value = today;
 
-    // --- NEW: Set Membership Start Date Constraints ---
     const startDateInput = document.getElementById('mem-start-date');
-    
-    // Min: Jan 1, 2026
     startDateInput.min = "2026-01-01";
     
-    // Max: Today + 1 Month
     const maxDate = new Date();
     maxDate.setMonth(maxDate.getMonth() + 1);
     startDateInput.max = maxDate.toISOString().split('T')[0];
 
-    // Set default value to Today if valid
     if (today >= startDateInput.min && today <= startDateInput.max) {
         startDateInput.value = today;
     } else {
-        startDateInput.value = startDateInput.min; // Fallback
+        startDateInput.value = startDateInput.min;
     }
     
     calculateMembershipDates();
@@ -223,7 +212,6 @@ function toggleMedCond(show) {
     }
 }
 
-// --- NEW: Toggle Membership Goal "Other" ---
 function toggleMemGoalOther(select) {
     const otherInput = document.getElementById('mem-goal-other');
     if (select.value === 'Other') {
@@ -237,27 +225,13 @@ function toggleMemGoalOther(select) {
     }
 }
 
-// Calculate End Date and Total Amount
 function calculateMembershipDates() {
     const planType = document.getElementById('mem-plan').value;
     const startDateInput = document.getElementById('mem-start-date').value;
     const amountInput = document.getElementById('mem-amount');
     const endDateInput = document.getElementById('mem-end-date');
 
-    // --- NEW: Start Date Validation Logic ---
-    if (startDateInput) {
-        const selectedDate = new Date(startDateInput);
-        const minDate = new Date(document.getElementById('mem-start-date').min);
-        const maxDate = new Date(document.getElementById('mem-start-date').max);
-
-        if (selectedDate < minDate || selectedDate > maxDate) {
-            showToast("Start Date must be between Jan 2026 and Today + 1 Month.", "error");
-            endDateInput.value = ""; // Clear end date
-            return;
-        }
-    } else {
-        return;
-    }
+    if (!startDateInput) return;
 
     let monthsToAdd = 0;
     let amount = 0;
@@ -278,10 +252,10 @@ function calculateMembershipDates() {
 }
 
 // Membership Form Submission
-document.getElementById('membership-form').addEventListener('submit', function(e) {
+document.getElementById('membership-form').addEventListener('submit', async function(e) {
     e.preventDefault();
 
-    // --- NEW: Emergency Phone Validation ---
+    // Emergency Phone Validation
     const emerPhone = document.getElementById('mem-emer-phone').value;
     const phoneRegex = /^[0-9]{10}$/;
     if (!phoneRegex.test(emerPhone)) {
@@ -289,10 +263,12 @@ document.getElementById('membership-form').addEventListener('submit', function(e
         return;
     }
 
-    // --- NEW: Goal "Other" Validation ---
+    // Goal Validation
     const goalSelect = document.getElementById('mem-goal');
     const goalOtherInput = document.getElementById('mem-goal-other');
-    if (goalSelect.value === 'Other' && goalOtherInput.value.trim() === "") {
+    const goal = goalSelect.value === 'Other' ? goalOtherInput.value : goalSelect.value;
+    
+    if (goalSelect.value === 'Other' && goal.trim() === "") {
         showToast("Please specify your fitness goal.", "error");
         return;
     }
@@ -303,7 +279,7 @@ document.getElementById('membership-form').addEventListener('submit', function(e
     const sigFileInput = document.getElementById('mem-signature-file');
 
     if(idNameInput.value.trim() === "") {
-        showToast("Please enter your ID Type (e.g., Aadhar).", "error");
+        showToast("Please enter your ID Type.", "error");
         return;
     }
 
@@ -317,36 +293,54 @@ document.getElementById('membership-form').addEventListener('submit', function(e
         return;
     }
 
-    // Collect Membership Data
-    const membershipData = {
-        goal: goalSelect.value === 'Other' ? goalOtherInput.value : goalSelect.value,
-        plan: document.getElementById('mem-plan').value,
-        startDate: document.getElementById('mem-start-date').value,
-        endDate: document.getElementById('mem-end-date').value,
-        paymentMode: document.getElementById('mem-payment-mode').value,
-        emergencyName: document.getElementById('mem-emer-name').value,
-        govIdType: idNameInput.value,
-        govIdFile: "File Uploaded: " + idFileInput.files[0].name,
-        signatureFile: "File Uploaded: " + sigFileInput.files[0].name
-    };
+    // Collect Medical Conditions
+    const medicalCond = document.querySelector('input[name="mem-med-cond"]:checked')?.value || 'No';
+    const medDesc = document.getElementById('mem-med-desc').value;
+    const medChecks = Array.from(document.querySelectorAll('input[name="med-check"]:checked'))
+        .map(cb => cb.value)
+        .join(', ');
 
-    // Update Current User Object
-    currentUser.hasCompletedMembership = true;
-    currentUser.membership = membershipData;
+    // Prepare FormData for file upload
+    const formData = new FormData();
+    formData.append('userId', currentUser.id);
+    formData.append('goal', goal);
+    formData.append('plan', document.getElementById('mem-plan').value);
+    formData.append('startDate', document.getElementById('mem-start-date').value);
+    formData.append('endDate', document.getElementById('mem-end-date').value);
+    formData.append('paymentMode', document.getElementById('mem-payment-mode').value);
+    formData.append('emergencyName', document.getElementById('mem-emer-name').value);
+    formData.append('emergencyRel', document.getElementById('mem-emer-rel').value);
+    formData.append('emergencyPhone', emerPhone);
+    formData.append('medicalCond', medicalCond);
+    formData.append('medDesc', medDesc);
+    formData.append('medChecks', medChecks);
+    formData.append('govIdType', idNameInput.value);
+    formData.append('govIdFile', idFileInput.files[0]);
+    formData.append('signatureFile', sigFileInput.files[0]);
 
-    // Update Database (Mock)
-    const dbIndex = users.findIndex(u => u.email === currentUser.email);
-    if(dbIndex !== -1) {
-        users[dbIndex] = currentUser;
+    try {
+        const response = await fetch(`${API_BASE_URL}/membership/submit`, {
+            method: 'POST',
+            body: formData
+        });
+
+        const data = await response.json();
+
+        if (!data.success) {
+            showToast(data.message, "error");
+            return;
+        }
+
+        currentUser.has_completed_membership = true;
+        showToast("Membership Registered Successfully!", "success");
+
+        document.getElementById('membership-section').classList.add('hidden');
+        showDashboard(currentUser);
+    } catch (error) {
+        console.error('Membership submission error:', error);
+        showToast("Error submitting membership. Please try again.", "error");
     }
-
-    showToast("Membership Registered Successfully!", "success");
-
-    // Hide Membership Form and Show Dashboard
-    document.getElementById('membership-section').classList.add('hidden');
-    showDashboard(currentUser);
 });
-
 
 // --- Enquiry Form Logic ---
 function toggleEnqOther(radio) {
@@ -360,14 +354,19 @@ function toggleEnqOther(radio) {
     }
 }
 
-document.getElementById('enquiry-form').addEventListener('submit', function(e) {
+document.getElementById('enquiry-form').addEventListener('submit', async function(e) {
     e.preventDefault();
+    
     const name = document.getElementById('enq-name').value.trim();
     const phone = document.getElementById('enq-phone').value.trim();
     const email = document.getElementById('enq-email').value.trim();
+    const contactMethod = document.querySelector('input[name="enq-contact-method"]:checked')?.value;
+    
     const goalRadios = document.getElementsByName('enq-goal');
     let goal = null;
-    for(const radio of goalRadios) { if(radio.checked) goal = radio.value; }
+    for(const radio of goalRadios) { 
+        if(radio.checked) goal = radio.value; 
+    }
 
     if (goal === 'Other') {
         const otherText = document.getElementById('enq-goal-other').value.trim();
@@ -379,23 +378,77 @@ document.getElementById('enquiry-form').addEventListener('submit', function(e) {
         goal = otherText;
     }
 
-    if (name.length < 2) { showToast("Please enter a valid name.", "error"); return; }
-    if (phone.length < 10) { showToast("Please enter a valid phone number.", "error"); return; }
+    const plan = document.querySelector('input[name="enq-plan"]:checked')?.value;
+    const startDate = document.getElementById('enq-start-date').value;
+    const budget = document.getElementById('enq-budget').value;
+    const time = document.querySelector('input[name="enq-time"]:checked')?.value;
+
+    // Validation
+    if (name.length < 2) { 
+        showToast("Please enter a valid name.", "error"); 
+        return; 
+    }
+    
+    if (!phone.match(/^[0-9]{10}$/)) { 
+        showToast("Please enter a valid 10-digit phone number.", "error"); 
+        return; 
+    }
+    
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(email)) { showToast("Invalid email format.", "error"); return; }
+    if (!emailRegex.test(email)) { 
+        showToast("Invalid email format.", "error"); 
+        return; 
+    }
+
+    if (!plan) {
+        showToast("Please select a preferred plan.", "error");
+        return;
+    }
+
+    if (!startDate) {
+        showToast("Please select a preferred start date.", "error");
+        return;
+    }
+
+    if (!time) {
+        showToast("Please select a preferred workout time.", "error");
+        return;
+    }
 
     const btn = this.querySelector('button[type="submit"]');
     const originalText = btn.innerText;
     btn.innerText = "Sending...";
     btn.disabled = true;
 
-    setTimeout(() => {
+    try {
+        const response = await fetch(`${API_BASE_URL}/enquiry`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ 
+                name, phone, email, contactMethod, 
+                goal, plan, startDate, budget, time 
+            })
+        });
+
+        const data = await response.json();
+
+        if (!data.success) {
+            showToast(data.message, "error");
+            return;
+        }
+
         showToast("Enquiry Sent Successfully!", "success");
         this.reset();
         document.getElementById('enq-goal-other').classList.add('hidden');
+    } catch (error) {
+        console.error('Enquiry error:', error);
+        showToast("Error sending enquiry. Please try again.", "error");
+    } finally {
         btn.innerText = originalText;
         btn.disabled = false;
-    }, 1500);
+    }
 });
 
 // --- Helper Functions ---
