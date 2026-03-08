@@ -14,6 +14,8 @@ app.use(cors());
 app.use(express.json());
 app.use('/uploads', express.static('uploads')); // Serve static files (images/PDFs)
 
+app.use(express.static(__dirname));
+
 // Ensure uploads directory exists
 const uploadDir = 'uploads';
 if (!fs.existsSync(uploadDir)){
