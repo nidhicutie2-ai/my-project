@@ -6,6 +6,8 @@
     <title>Vishal Fitness Gym</title>
     <link rel="stylesheet" href="style.css">
     <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700;900&display=swap" rel="stylesheet">
+    <!-- FontAwesome for Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
 <body>
 
@@ -79,7 +81,6 @@
                     <div class="form-grid-2">
                         <div class="form-group">
                             <label>Phone Number</label>
-                            <!-- Updated: type="tel" for mobile numeric keyboard -->
                             <input type="tel" id="reg-phone" class="form-control" placeholder="10-digit number" required>
                         </div>
                         <div class="form-group">
@@ -100,7 +101,6 @@
                         </div>
                         <div class="form-group">
                             <label>Date of Birth</label>
-                            <!-- Updated: Max date handled in JS, min="1950-01-01" -->
                             <input type="date" id="reg-dob" class="form-control" min="1950-01-01" required>
                         </div>
                     </div>
@@ -288,7 +288,6 @@
                     </div>
                     <div class="form-group">
                         <label>Emergency Phone Number</label>
-                        <!-- Updated: type="tel" for numeric input -->
                         <input type="tel" id="mem-emer-phone" class="form-control" placeholder="10-digit number" required>
                     </div>
                 </div>
@@ -323,14 +322,12 @@
                     <h3>🏋 Fitness Goals & Preferences</h3>
                     <div class="form-group">
                         <label>Primary Goal</label>
-                        <!-- Updated: Added onchange event and "Other" option -->
                         <select id="mem-goal" class="form-control" onchange="toggleMemGoalOther(this)" required>
                             <option value="Weight Loss">Weight Loss</option>
                             <option value="Muscle Gain">Muscle Gain</option>
                             <option value="General Fitness">General Fitness</option>
                             <option value="Other">Other</option>
                         </select>
-                        <!-- Updated: Added hidden input for "Other" -->
                         <input type="text" id="mem-goal-other" class="form-control hidden" placeholder="Please specify your goal" style="margin-top: 10px;">
                     </div>
                     <div class="form-group">
@@ -365,7 +362,6 @@
                         </div>
                         <div class="form-group">
                             <label>Start Date</label>
-                            <!-- Constraints handled in JS -->
                             <input type="date" id="mem-start-date" class="form-control" onchange="calculateMembershipDates()" required>
                         </div>
                     </div>
@@ -435,6 +431,254 @@
         </div>
         <button class="btn-outline" onclick="logout()">Logout</button>
     </section>
+
+    <!-- ADMIN DASHBOARD SECTION -->
+    <!-- FIX: Added class="hidden" to ensure it is not visible by default -->
+    <section id="admin-dashboard" class="hidden container">
+        <div class="admin-layout">
+            <!-- Admin Sidebar -->
+            <aside class="admin-sidebar">
+                <div class="admin-user-info">
+                    <h3>Admin Panel</h3>
+                    <p id="admin-name-display">Super Admin</p>
+                </div>
+                <nav class="admin-nav">
+                    <button class="admin-nav-btn active" onclick="switchAdminTab('dashboard')">📊 Dashboard</button>
+                    <button class="admin-nav-btn" onclick="switchAdminTab('users')">👥 Users</button>
+                    <button class="admin-nav-btn" onclick="switchAdminTab('enquiries')">📨 Enquiries</button>
+                    <button class="admin-nav-btn" onclick="switchAdminTab('memberships')">💳 Memberships</button>
+                    <button class="admin-nav-btn" onclick="switchAdminTab('admins')">🛡️ Admins</button>
+                </nav>
+                <button class="btn-outline" style="margin-top: auto;" onclick="logout()">Logout</button>
+            </aside>
+
+            <!-- Admin Content -->
+            <main class="admin-content">
+                <!-- 1. Dashboard Overview -->
+                <div id="admin-view-dashboard" class="admin-view">
+                    <h2>Overview</h2>
+                    <div class="stats-grid">
+                        <div class="stat-card">
+                            <h3>Total Users</h3>
+                            <p class="stat-number" id="stat-users">0</p>
+                        </div>
+                        <div class="stat-card">
+                            <h3>Active Memberships</h3>
+                            <p class="stat-number" id="stat-members">0</p>
+                        </div>
+                        <div class="stat-card">
+                            <h3>Enquiries</h3>
+                            <p class="stat-number" id="stat-enquiries">0</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 2. Users Management -->
+                <div id="admin-view-users" class="admin-view hidden">
+                    <div class="view-header">
+                        <h2>User Management</h2>
+                    </div>
+                    <div class="table-responsive">
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>Name</th>
+                                    <th>Email</th>
+                                    <th>Phone</th>
+                                    <th>Address</th>
+                                    <th>Gender</th>
+                                    <th>DOB</th>
+                                    <th>Role</th>
+                                    <th>Status</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="users-table-body"></tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- 3. Enquiries -->
+                <div id="admin-view-enquiries" class="admin-view hidden">
+                    <h2>Enquiries</h2>
+                    <div class="table-responsive">
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>Name</th>
+                                    <th>Phone</th>
+                                    <th>Email</th>
+                                    <th>Contact Via</th>
+                                    <th>Goal</th>
+                                    <th>Plan</th>
+                                    <th>Enquired Date</th>
+                                    <th>Budget</th>
+                                    <th>Preferred Time</th>
+                                    <th>Enquiry Date</th>
+                                </tr>
+                            </thead>
+                            <tbody id="enquiries-table-body"></tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- 4. Memberships (UPDATED WITH ACTIONS) -->
+                <div id="admin-view-memberships" class="admin-view hidden">
+                    <h2>Active Memberships</h2>
+                    <div class="table-responsive">
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>User</th>
+                                    <th>Plan</th>
+                                    <th>Goal</th>
+                                    <th>Start</th>
+                                    <th>End</th>
+                                    <th>Payment</th>
+                                    <th>Emergency</th>
+                                    <th>Medical</th>
+                                    <th>Files</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="memberships-table-body"></tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- 5. Admins -->
+                <div id="admin-view-admins" class="admin-view hidden">
+                    <div class="view-header">
+                        <h2>Admin Management</h2>
+                        <button class="btn-primary" onclick="toggleCreateAdminModal()">+ New Admin</button>
+                    </div>
+                    <div class="table-responsive">
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>Name</th>
+                                    <th>Email</th>
+                                    <th>Status</th>
+                                    <th>Admin Since</th>
+                                </tr>
+                            </thead>
+                            <tbody id="admins-table-body"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </main>
+        </div>
+    </section>
+
+    <!-- Edit User Modal -->
+    <div id="edit-user-modal" class="modal-overlay hidden">
+        <div class="modal-content">
+            <span class="close-btn" onclick="toggleEditUserModal()">&times;</span>
+            <h3>Edit User</h3>
+            <form id="edit-user-form">
+                <input type="hidden" id="edit-user-id">
+                <div class="form-group">
+                    <label>Full Name</label>
+                    <input type="text" id="edit-name" class="form-control" required>
+                </div>
+                <div class="form-group">
+                    <label>Phone</label>
+                    <input type="tel" id="edit-phone" class="form-control" required>
+                </div>
+                <div class="form-group">
+                    <label>Address</label>
+                    <input type="text" id="edit-address" class="form-control" required>
+                </div>
+                <div class="form-grid-2">
+                    <div class="form-group">
+                        <label>Gender</label>
+                        <select id="edit-gender" class="form-control">
+                            <option value="Male">Male</option>
+                            <option value="Female">Female</option>
+                            <option value="Other">Other</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>DOB</label>
+                        <input type="date" id="edit-dob" class="form-control">
+                    </div>
+                </div>
+                <button type="submit" class="btn-primary full-width">Save Changes</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Create Admin Modal -->
+    <div id="create-admin-modal" class="modal-overlay hidden">
+        <div class="modal-content">
+            <span class="close-btn" onclick="toggleCreateAdminModal()">&times;</span>
+            <h3>Create New Admin</h3>
+            <form id="create-admin-form">
+                <div class="form-group">
+                    <label>Admin Name</label>
+                    <input type="text" id="new-admin-name" class="form-control" required>
+                </div>
+                <div class="form-group">
+                    <label>Email</label>
+                    <input type="email" id="new-admin-email" class="form-control" required>
+                </div>
+                <div class="form-group">
+                    <label>Password</label>
+                    <input type="password" id="new-admin-pass" class="form-control" required>
+                </div>
+                <button type="submit" class="btn-secondary full-width">Create Admin</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- NEW: Edit Membership Modal -->
+    <div id="edit-membership-modal" class="modal-overlay hidden">
+        <div class="modal-content">
+            <span class="close-btn" onclick="toggleEditMembershipModal()">&times;</span>
+            <h3>Edit Membership</h3>
+            <form id="edit-membership-form">
+                <input type="hidden" id="edit-mem-id">
+                <div class="form-group">
+                    <label>Plan</label>
+                    <select id="edit-mem-plan" class="form-control">
+                        <option value="Monthly">Monthly</option>
+                        <option value="Quarterly">Quarterly</option>
+                        <option value="Half-Yearly">Half-Yearly</option>
+                        <option value="Annual">Annual</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Goal</label>
+                    <select id="edit-mem-goal" class="form-control">
+                        <option value="Weight Loss">Weight Loss</option>
+                        <option value="Muscle Gain">Muscle Gain</option>
+                        <option value="General Fitness">General Fitness</option>
+                        <option value="Other">Other</option>
+                    </select>
+                </div>
+                <div class="form-grid-2">
+                    <div class="form-group">
+                        <label>Start Date</label>
+                        <input type="date" id="edit-mem-start-date" class="form-control">
+                    </div>
+                    <div class="form-group">
+                        <label>End Date</label>
+                        <input type="date" id="edit-mem-end-date" class="form-control">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>Payment Mode</label>
+                    <select id="edit-mem-payment-mode" class="form-control">
+                        <option value="UPI">UPI</option>
+                        <option value="Card">Card</option>
+                        <option value="Net Banking">Net Banking</option>
+                        <option value="Cash">Cash</option>
+                    </select>
+                </div>
+                <button type="submit" class="btn-primary full-width">Update Membership</button>
+            </form>
+        </div>
+    </div>
 
     <script src="script.js"></script>
 </body>

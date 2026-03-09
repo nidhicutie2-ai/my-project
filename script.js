@@ -99,14 +99,12 @@ document.getElementById('signup-form').addEventListener('submit', async function
     const dob = document.getElementById('reg-dob').value;
     const address = document.getElementById('reg-address').value;
 
-    // Phone Validation
     const phoneRegex = /^[0-9]{10}$/;
     if (!phoneRegex.test(phone)) {
         showToast("Phone number must be exactly 10 digits.", "error");
         return;
     }
 
-    // DOB Validation
     const selectedDob = new Date(dob);
     const today = new Date();
     today.setHours(0,0,0,0);
@@ -152,11 +150,15 @@ function loginSuccess(user) {
     showToast(`Welcome, ${user.name}!`, "success");
     toggleAuthModal();
     
+    // Hide public sections
     document.querySelector('.hero-section').style.display = 'none';
     document.querySelector('.navbar').style.display = 'none'; 
     document.querySelector('.enquiry-section').style.display = 'none';
 
-    if (user.role === 'Admin' || user.has_completed_membership) {
+    // Route based on role
+    if (user.role === 'Admin') {
+        showAdminDashboard(user);
+    } else if (user.has_completed_membership) {
         showDashboard(user);
     } else {
         showMembershipForm(user);
@@ -168,6 +170,416 @@ function showDashboard(user) {
     dashboard.classList.remove('hidden');
     document.getElementById('welcome-msg').innerText = `Welcome, ${user.name} (${user.role})`;
 }
+
+// --- ADMIN DASHBOARD LOGIC ---
+
+function showAdminDashboard(user) {
+    const dashboard = document.getElementById('admin-dashboard');
+    dashboard.classList.remove('hidden');
+    document.getElementById('admin-name-display').innerText = user.name;
+    
+    // Load initial data
+    loadAdminStats();
+    loadAdminUsers();
+    loadAdminEnquiries();
+    loadAdminMemberships();
+    loadAdminAdmins();
+}
+
+function switchAdminTab(tabName) {
+    // Update buttons
+    document.querySelectorAll('.admin-nav-btn').forEach(btn => btn.classList.remove('active'));
+    event.target.classList.add('active');
+
+    // Hide all views
+    document.querySelectorAll('.admin-view').forEach(view => view.classList.add('hidden'));
+
+    // Show selected view
+    document.getElementById(`admin-view-${tabName}`).classList.remove('hidden');
+}
+
+// Fetch Functions
+async function loadAdminStats() {
+    try {
+        const res = await fetch(`${API_BASE_URL}/admin/stats`);
+        const data = await res.json();
+        if(data.success) {
+            document.getElementById('stat-users').innerText = data.stats.users;
+            document.getElementById('stat-members').innerText = data.stats.members;
+            document.getElementById('stat-enquiries').innerText = data.stats.enquiries;
+        }
+    } catch (e) { console.error(e); }
+}
+
+// Load Users
+async function loadAdminUsers() {
+    const tbody = document.getElementById('users-table-body');
+    tbody.innerHTML = ''; 
+
+    try {
+        const res = await fetch(`${API_BASE_URL}/admin/users`);
+        const data = await res.json();
+        
+        if(!data.success || data.users.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="9" style="text-align:center; padding:20px;">No users found in database.</td></tr>';
+            return;
+        }
+
+        data.users.forEach(u => {
+            const suspendIcon = u.status === 'Active' ? '<i class="fas fa-ban"></i> Suspend' : '<i class="fas fa-check-circle"></i> Activate';
+            const suspendTitle = u.status === 'Active' ? 'Suspend User' : 'Activate User';
+
+            const tr = document.createElement('tr');
+            tr.style.display = "table-row"; 
+            
+            tr.innerHTML = `
+                <td style="color:white !important;">${u.name || 'N/A'}</td>
+                <td style="color:white !important;">${u.email || 'N/A'}</td>
+                <td style="color:white !important;">${u.phone || 'N/A'}</td>
+                <td style="color:white !important;">${u.address || 'N/A'}</td>
+                <td style="color:white !important;">${u.gender || 'N/A'}</td>
+                <td style="color:white !important;">${u.dob ? u.dob.split('T')[0] : 'N/A'}</td>
+                <td><span class="badge ${u.role === 'Admin' ? 'badge-admin' : ''}" style="background:#333; padding:4px 8px; border-radius:4px;">${u.role}</span></td>
+                <td><span class="badge ${u.status === 'Active' ? 'badge-active' : 'badge-suspended'}" style="background:${u.status === 'Active' ? '#28a745' : '#ffc107'}; color:#000; padding:4px 8px; border-radius:4px;">${u.status}</span></td>
+                <td>
+                    <button class="action-btn btn-edit" onclick="openEditUser(${u.id})" title="Edit User">
+                        <i class="fas fa-pencil-alt"></i> Edit
+                    </button>
+                    <button class="action-btn btn-suspend" onclick="toggleUserStatus(${u.id}, '${u.status}')" title="${suspendTitle}">
+                        ${suspendIcon}
+                    </button>
+                    ${u.role !== 'Admin' ? `
+                    <button class="action-btn btn-delete" onclick="deleteUser(${u.id})" title="Delete User">
+                        <i class="fas fa-trash-alt"></i> Del
+                    </button>` : ''}
+                </td>
+            `;
+            tbody.appendChild(tr);
+        });
+    } catch (e) { 
+        console.error("Error loading users:", e);
+        tbody.innerHTML = '<tr><td colspan="9" style="color:red; text-align:center;">Error loading users.</td></tr>';
+    }
+}
+
+// Load Enquiries
+async function loadAdminEnquiries() {
+    try {
+        const res = await fetch(`${API_BASE_URL}/admin/enquiries`);
+        const data = await res.json();
+        const tbody = document.getElementById('enquiries-table-body');
+        tbody.innerHTML = '';
+
+        data.enquiries.forEach(eq => {
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td>${eq.name}</td>
+                <td>${eq.phone}</td>
+                <td>${eq.email}</td>
+                <td>${eq.contact_method}</td>
+                <td>${eq.goal}</td>
+                <td>${eq.plan_preference}</td>
+                <td>${eq.start_date || '-'}</td>
+                <td>${eq.budget || '-'}</td>
+                <td>${eq.preferred_time}</td>
+                <td>${new Date(eq.created_at).toLocaleDateString()}</td>
+            `;
+            tbody.appendChild(tr);
+        });
+    } catch (e) { console.error(e); }
+}
+
+// UPDATED: Load Memberships with Actions (Edit, Suspend, Delete)
+async function loadAdminMemberships() {
+    try {
+        const res = await fetch(`${API_BASE_URL}/admin/memberships`);
+        const data = await res.json();
+        const tbody = document.getElementById('memberships-table-body');
+        tbody.innerHTML = '';
+
+        data.memberships.forEach(m => {
+            const tr = document.createElement('tr');
+            // Determine Suspend Button based on User Status (since suspend affects login)
+            const suspendIcon = m.status === 'Active' ? '<i class="fas fa-ban"></i>' : '<i class="fas fa-check-circle"></i>';
+            const suspendTitle = m.status === 'Active' ? 'Suspend User (Block Login)' : 'Activate User';
+            
+            tr.innerHTML = `
+                <td>
+                    <strong>${m.name}</strong><br>
+                    <small style="color:#aaa">${m.email}</small>
+                </td>
+                <td>${m.plan}</td>
+                <td>${m.goal}</td>
+                <td>${new Date(m.start_date).toLocaleDateString()}</td>
+                <td>${new Date(m.end_date).toLocaleDateString()}</td>
+                <td>${m.payment_mode}</td>
+                <td>
+                    ${m.emergency_name}<br>
+                    <small>${m.emergency_phone}</small>
+                </td>
+                <td>
+                    <div title="${m.medical_conditions}">
+                        ${m.medical_conditions.length > 20 ? m.medical_conditions.substring(0,20) + '...' : m.medical_conditions}
+                    </div>
+                </td>
+                <td>
+                    ${m.gov_id_file_path ? `<a href="/uploads/${m.gov_id_file_path}" target="_blank" style="color:var(--primary)">ID</a>` : 'N/A'}<br>
+                    ${m.signature_file_path ? `<a href="/uploads/${m.signature_file_path}" target="_blank" style="color:var(--primary)">Sig</a>` : 'N/A'}
+                </td>
+                <td>
+                    <button class="action-btn btn-edit" onclick="openEditMembership(${m.id})" title="Edit Membership">
+                        <i class="fas fa-pencil-alt"></i>
+                    </button>
+                    <button class="action-btn btn-suspend" onclick="suspendMembership(${m.user_id}, '${m.status}')" title="${suspendTitle}">
+                        ${suspendIcon}
+                    </button>
+                    <button class="action-btn btn-delete" onclick="deleteMembership(${m.id})" title="Delete Membership">
+                        <i class="fas fa-trash-alt"></i>
+                    </button>
+                </td>
+            `;
+            tbody.appendChild(tr);
+        });
+    } catch (e) { console.error(e); }
+}
+
+async function loadAdminAdmins() {
+    try {
+        const res = await fetch(`${API_BASE_URL}/admin/admins`);
+        const data = await res.json();
+        const tbody = document.getElementById('admins-table-body');
+        tbody.innerHTML = '';
+
+        data.admins.forEach(a => {
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td>${a.name}</td>
+                <td>${a.email}</td>
+                <td><span class="badge ${a.status === 'Active' ? 'badge-active' : 'badge-suspended'}">${a.status}</span></td>
+                <td>${new Date(a.admin_since).toLocaleDateString()}</td>
+            `;
+            tbody.appendChild(tr);
+        });
+    } catch (e) { console.error(e); }
+}
+
+// Admin Actions
+async function toggleUserStatus(id, currentStatus) {
+    const newStatus = currentStatus === 'Active' ? 'Suspended' : 'Active';
+    if(!confirm(`Are you sure you want to set this user to ${newStatus}?`)) return;
+
+    try {
+        const res = await fetch(`${API_BASE_URL}/admin/user/${id}/status`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ status: newStatus })
+        });
+        const data = await res.json();
+        if(data.success) {
+            showToast(data.message, "success");
+            loadAdminUsers();
+            loadAdminMemberships(); // Refresh to update suspend icon in membership view
+        }
+    } catch(e) { showToast("Error updating status", "error"); }
+}
+
+async function deleteUser(id) {
+    if(!confirm("Are you sure you want to permanently delete this user? This cannot be undone.")) return;
+
+    try {
+        const res = await fetch(`${API_BASE_URL}/admin/user/${id}`, { method: 'DELETE' });
+        const data = await res.json();
+        if(data.success) {
+            showToast(data.message, "success");
+            loadAdminUsers();
+        }
+    } catch(e) { showToast("Error deleting user", "error"); }
+}
+
+// --- NEW MEMBERSHIP ACTIONS ---
+
+// 1. Suspend Membership (Actually Suspend the User)
+async function suspendMembership(userId, currentStatus) {
+    const newStatus = currentStatus === 'Active' ? 'Suspended' : 'Active';
+    if(!confirm(`Are you sure you want to ${newStatus} this member? This will prevent login.`)) return;
+
+    try {
+        const res = await fetch(`${API_BASE_URL}/admin/user/${userId}/status`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ status: newStatus })
+        });
+        const data = await res.json();
+        if(data.success) {
+            showToast(data.message, "success");
+            loadAdminMemberships(); // Refresh table
+        }
+    } catch(e) { showToast("Error updating status", "error"); }
+}
+
+// 2. Delete Membership
+async function deleteMembership(id) {
+    if(!confirm("Are you sure you want to delete this membership record?")) return;
+
+    try {
+        const res = await fetch(`${API_BASE_URL}/admin/membership/${id}`, { method: 'DELETE' });
+        const data = await res.json();
+        if(data.success) {
+            showToast(data.message, "success");
+            loadAdminMemberships();
+        }
+    } catch(e) { showToast("Error deleting membership", "error"); }
+}
+
+// 3. Edit Membership Modal Logic
+function toggleEditMembershipModal() {
+    const modal = document.getElementById('edit-membership-modal');
+    modal.classList.toggle('hidden');
+    setTimeout(() => {
+        modal.classList.toggle('active');
+    }, 10);
+}
+
+async function openEditMembership(id) {
+    try {
+        // We need to fetch the specific membership data
+        // Since our GET list returns data, we can find it there, or better fetch specific details
+        const res = await fetch(`${API_BASE_URL}/admin/memberships`);
+        const data = await res.json();
+        const membership = data.memberships.find(m => m.id === id);
+
+        if(membership) {
+            document.getElementById('edit-mem-id').value = membership.id;
+            document.getElementById('edit-mem-plan').value = membership.plan;
+            document.getElementById('edit-mem-goal').value = membership.goal;
+            document.getElementById('edit-mem-start-date').value = membership.start_date.split('T')[0];
+            document.getElementById('edit-mem-end-date').value = membership.end_date.split('T')[0];
+            document.getElementById('edit-mem-payment-mode').value = membership.payment_mode;
+            
+            toggleEditMembershipModal();
+        }
+    } catch(e) { 
+        console.error(e);
+        showToast("Error fetching membership details", "error"); 
+    }
+}
+
+document.getElementById('edit-membership-form').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    const id = document.getElementById('edit-mem-id').value;
+    const plan = document.getElementById('edit-mem-plan').value;
+    const goal = document.getElementById('edit-mem-goal').value;
+    const startDate = document.getElementById('edit-mem-start-date').value;
+    const endDate = document.getElementById('edit-mem-end-date').value;
+    const paymentMode = document.getElementById('edit-mem-payment-mode').value;
+
+    try {
+        const res = await fetch(`${API_BASE_URL}/admin/membership/${id}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ plan, goal, startDate, endDate, paymentMode })
+        });
+        const data = await res.json();
+        if(data.success) {
+            showToast(data.message, "success");
+            toggleEditMembershipModal();
+            loadAdminMemberships();
+        } else {
+            showToast(data.message, "error");
+        }
+    } catch(e) { showToast("Error updating membership", "error"); }
+});
+
+// Edit User Modal Logic
+function toggleEditUserModal() {
+    const modal = document.getElementById('edit-user-modal');
+    modal.classList.toggle('hidden');
+    setTimeout(() => {
+        modal.classList.toggle('active');
+    }, 10);
+}
+
+async function openEditUser(id) {
+    try {
+        const res = await fetch(`${API_BASE_URL}/admin/user/${id}`);
+        const data = await res.json();
+
+        if(data.success) {
+            const user = data.user;
+            document.getElementById('edit-user-id').value = user.id;
+            document.getElementById('edit-name').value = user.name;
+            document.getElementById('edit-phone').value = user.phone || '';
+            document.getElementById('edit-address').value = user.address || '';
+            document.getElementById('edit-gender').value = user.gender || 'Male';
+            document.getElementById('edit-dob').value = user.dob ? user.dob.split('T')[0] : '';
+            
+            toggleEditUserModal();
+        } else {
+            showToast("Error fetching user details", "error");
+        }
+    } catch(e) { 
+        console.error(e);
+        showToast("Server error", "error"); 
+    }
+}
+
+document.getElementById('edit-user-form').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    const id = document.getElementById('edit-user-id').value;
+    const name = document.getElementById('edit-name').value;
+    const phone = document.getElementById('edit-phone').value;
+    const address = document.getElementById('edit-address').value;
+    const gender = document.getElementById('edit-gender').value;
+    const dob = document.getElementById('edit-dob').value;
+
+    try {
+        const res = await fetch(`${API_BASE_URL}/admin/user/${id}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ name, phone, address, gender, dob })
+        });
+        const data = await res.json();
+        if(data.success) {
+            showToast(data.message, "success");
+            toggleEditUserModal();
+            loadAdminUsers();
+        } else {
+            showToast(data.message, "error");
+        }
+    } catch(e) { showToast("Error updating user", "error"); }
+});
+
+// Create Admin Modal Logic
+function toggleCreateAdminModal() {
+    const modal = document.getElementById('create-admin-modal');
+    modal.classList.toggle('hidden');
+    setTimeout(() => modal.classList.toggle('active'), 10);
+}
+
+document.getElementById('create-admin-form').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    const name = document.getElementById('new-admin-name').value;
+    const email = document.getElementById('new-admin-email').value;
+    const pass = document.getElementById('new-admin-pass').value;
+
+    try {
+        const res = await fetch(`${API_BASE_URL}/admin/create`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ name, email, pass })
+        });
+        const data = await res.json();
+        if(data.success) {
+            showToast(data.message, "success");
+            this.reset();
+            toggleCreateAdminModal();
+            loadAdminAdmins();
+        } else {
+            showToast(data.message, "error");
+        }
+    } catch(e) { showToast("Error creating admin", "error"); }
+});
+
 
 // --- Membership Form Logic ---
 function showMembershipForm(user) {
@@ -185,7 +597,7 @@ function showMembershipForm(user) {
     document.getElementById('mem-sub-date').value = today;
 
     const startDateInput = document.getElementById('mem-start-date');
-    startDateInput.min = "2026-01-01";
+    startDateInput.min = "2026-01-01"; 
     
     const maxDate = new Date();
     maxDate.setMonth(maxDate.getMonth() + 1);
@@ -200,7 +612,6 @@ function showMembershipForm(user) {
     calculateMembershipDates();
 }
 
-// Toggle Medical Description
 function toggleMedCond(show) {
     const descGroup = document.getElementById('med-desc-group');
     if (show) {
@@ -251,11 +662,8 @@ function calculateMembershipDates() {
     endDateInput.value = endDate.toISOString().split('T')[0];
 }
 
-// Membership Form Submission
 document.getElementById('membership-form').addEventListener('submit', async function(e) {
     e.preventDefault();
-
-    // Emergency Phone Validation
     const emerPhone = document.getElementById('mem-emer-phone').value;
     const phoneRegex = /^[0-9]{10}$/;
     if (!phoneRegex.test(emerPhone)) {
@@ -263,7 +671,6 @@ document.getElementById('membership-form').addEventListener('submit', async func
         return;
     }
 
-    // Goal Validation
     const goalSelect = document.getElementById('mem-goal');
     const goalOtherInput = document.getElementById('mem-goal-other');
     const goal = goalSelect.value === 'Other' ? goalOtherInput.value : goalSelect.value;
@@ -273,7 +680,6 @@ document.getElementById('membership-form').addEventListener('submit', async func
         return;
     }
 
-    // File Validations
     const idNameInput = document.getElementById('mem-govt-id-name');
     const idFileInput = document.getElementById('mem-govt-id-file');
     const sigFileInput = document.getElementById('mem-signature-file');
@@ -293,14 +699,12 @@ document.getElementById('membership-form').addEventListener('submit', async func
         return;
     }
 
-    // Collect Medical Conditions
     const medicalCond = document.querySelector('input[name="mem-med-cond"]:checked')?.value || 'No';
     const medDesc = document.getElementById('mem-med-desc').value;
     const medChecks = Array.from(document.querySelectorAll('input[name="med-check"]:checked'))
         .map(cb => cb.value)
         .join(', ');
 
-    // Prepare FormData for file upload
     const formData = new FormData();
     formData.append('userId', currentUser.id);
     formData.append('goal', goal);
@@ -383,7 +787,6 @@ document.getElementById('enquiry-form').addEventListener('submit', async functio
     const budget = document.getElementById('enq-budget').value;
     const time = document.querySelector('input[name="enq-time"]:checked')?.value;
 
-    // Validation
     if (name.length < 2) { 
         showToast("Please enter a valid name.", "error"); 
         return; 
@@ -459,6 +862,7 @@ function logout() {
     document.querySelector('.enquiry-section').style.display = 'flex';
     document.getElementById('user-dashboard').classList.add('hidden');
     document.getElementById('membership-section').classList.add('hidden');
+    document.getElementById('admin-dashboard').classList.add('hidden');
     showToast("Logged out successfully.", "success");
 }
 
