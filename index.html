@@ -10,31 +10,44 @@
 </head>
 <body>
 
-    <div id="toast-container"></div>
-
-    <!-- FIXED LEFT-SIDE MEMBERSHIP WIDGET -->
-    <div id="membership-widget" class="hidden">
-        <div class="widget-header" onclick="toggleMembershipWidget()">
-            <span class="widget-icon">✅</span>
-            <span class="widget-title">Membership</span>
-            <i class="fas fa-chevron-down arrow-icon"></i>
-        </div>
-        <div class="widget-body">
-            <p class="status-text">Membership Active</p>
-            <p><strong>Plan:</strong> <span id="widget-plan-name">Half-Yearly</span></p>
-            <p>Valid until: <span id="widget-expiry-date">9/21/2026</span></p>
-            <p>(<span id="widget-days-remaining">193</span> days remaining)</p>
-        </div>
-    </div>
+    <div id="toast-container"></div>   
 
     <!-- Navigation -->
     <nav class="navbar">
         <div class="container nav-container">
-            <div class="logo">
+            <div class="logo" onclick="navigateTo('home')">
                 <img src="https://z-cdn-media.chatglm.cn/files/6e8c0527-a7c2-4d86-8d70-a2371acb88fd.jpeg?auth_key=1872466607-d5f4bbfce72e44ffbe27fe1fcf2c2328-0-f4f731e6600760dddd3780f79f4d2b47" alt="Vishal Fitness Logo">
                 <span>VISHAL FITNESS</span>
             </div>
-            <button class="btn-auth-trigger" onclick="toggleAuthModal()">Login / Signup</button>
+            
+            <!-- Main Navigation Links (Visible to All) -->
+            <div class="nav-links" id="public-nav">
+                <button class="nav-link" onclick="navigateTo('home')">Home</button>
+                <button class="nav-link" onclick="navigateTo('trainers')">Trainers</button>
+                <button class="nav-link" onclick="navigateTo('nutrition')">Nutrition</button>
+                <button class="nav-link" onclick="navigateTo('reviews')">Reviews</button>
+            </div>
+
+            <!-- Auth Button / User Links -->
+            <div class="auth-section">
+                <button class="btn-auth-trigger" id="nav-auth-btn" onclick="toggleAuthModal()">Login / Signup</button>
+                
+                <!-- FIXED: USER PROFILE IN NAVBAR -->
+                <div id="user-nav-dropdown" class="hidden">
+                    <div class="nav-profile-wrapper">
+                        <img src="https://picsum.photos/seed/user/40/40" alt="User" class="nav-user-img">
+                        <div class="nav-user-info">
+                            <span id="nav-user-name" class="nav-user-name">User</span>
+                            <span id="nav-user-role" class="nav-user-role">Member</span>
+                        </div>
+                        <i class="fas fa-chevron-down nav-dropdown-arrow"></i>
+                    </div>
+                    <div class="nav-dropdown-menu hidden">
+                        <button class="nav-dropdown-item" onclick="navigateTo('profile')">Dashboard</button>
+                        <button class="nav-dropdown-item" onclick="logout()">Logout</button>
+                    </div>
+                </div>
+            </div>
             <div class="mobile-menu-icon" onclick="toggleMobileMenu()">☰</div>
         </div>
     </nav>
@@ -84,8 +97,8 @@
                     </div>
                     <div class="form-group">
                         <label>Email Address</label>
-                        <input type="text" id="reg-email" class="form-control" placeholder="john.doe@gmail.com" required>
-                        <small style="color: #888; font-size: 0.8rem;">Only Gmail addresses are allowed (e.g., user@gmail.com).</small>
+                        <input type="text" id="reg-email" class="form-control" placeholder="john@example.com" required>
+                        <small style="color: #888; font-size: 0.8rem;">Must contain @ and .</small>
                     </div>
                     <div class="form-grid-2">
                         <div class="form-group" style="position: relative;">
@@ -104,12 +117,7 @@
                             <label>Phone Number</label>
                             <input type="tel" id="reg-phone" class="form-control" placeholder="10-digit number" required>
                         </div>
-                        <div class="form-group">
-                            <label>Role</label>
-                            <select id="reg-role" class="form-control">
-                                <option value="Member" selected>Member</option>
-                            </select>
-                        </div>
+                    
                     </div>
                     <div class="form-grid-2">
                         <div class="form-group">
@@ -121,8 +129,8 @@
                             </select>
                         </div>
                         <div class="form-group">
-                            <label>Date of Birth (1996-2009)</label>
-                            <input type="date" id="reg-dob" class="form-control" min="1996-01-01" max="2009-12-31" required>
+                            <label>Date of Birth (1920-2016)</label>
+                            <input type="date" id="reg-dob" class="form-control" min="1920-01-01" max="2016-12-31" required>
                         </div>
                     </div>
                     <div class="form-group">
@@ -136,14 +144,14 @@
             <!-- Forgot Password Form -->
             <div id="forgot-password-container" class="auth-form-container hidden">
                 <h3 style="color: var(--primary); margin-bottom: 15px;">Reset Password</h3>
-                <p style="color: #ccc; font-size: 0.9rem; margin-bottom: 20px;">Enter your registered Gmail to receive an OTP on your mobile.</p>
+                <p style="color: #ccc; font-size: 0.9rem; margin-bottom: 20px;">Enter your registered email to receive an OTP on your mobile.</p>
                 
                 <!-- Step 1: Email -->
                 <div id="forgot-step-1">
                     <form id="forgot-email-form">
                         <div class="form-group">
                             <label>Registered Email</label>
-                            <input type="email" id="forgot-email" class="form-control" placeholder="user@gmail.com" required>
+                            <input type="email" id="forgot-email" class="form-control" placeholder="user@example.com" required>
                         </div>
                         <button type="submit" class="btn-primary full-width">Send OTP</button>
                     </form>
@@ -158,7 +166,7 @@
                         <div class="form-group">
                             <label>Enter OTP</label>
                             <input type="text" id="forgot-otp" class="form-control otp-input" placeholder="1234" maxlength="4" required>
-                            <small style="color: #888; font-size: 0.8rem;">Check your mobile (Simulated on Server Console).</small>
+                            <small style="color: #888; font-size: 0.8rem;">Check your mobile for the code.</small>
                         </div>
                         <div class="form-group" style="position: relative;">
                             <label>New Password</label>
@@ -181,21 +189,33 @@
         </div>
     </div>
 
-    <!-- Hero Section -->
-    <section class="hero-section">
-        <div class="hero-bg"></div> 
-        <div class="hero-overlay"></div>
-        <div class="container hero-content">
-            <h1>LITTLE PAIN TO A BIG DIFFERENCE</h1>
-            <p>Join Vishal Fitness today and transform your life.</p>
-            <div class="hero-actions">
-                <button class="btn-primary large-btn" onclick="toggleAuthModal()">Join Now</button>
+    <!-- PAGE 1: HOME -->
+    <section id="page-home" class="page-section">
+        <div class="hero-section">
+            <div class="hero-bg"></div> 
+            <div class="hero-overlay"></div>
+            <div class="container hero-content">
+                <h1>LITTLE PAIN TO A BIG DIFFERENCE</h1>
+                <p>Join Vishal Fitness today and transform your life.</p>
+                <div class="hero-actions">
+                    <button class="btn-primary large-btn" onclick="toggleAuthModal()">Join Now</button>
+                </div>
             </div>
         </div>
+
+        <!-- DEMO VIDEO SECTION -->
+        <section class="demo-video-section">
+            <div class="container">
+                <h2 class="section-title">Experience <span class="highlight">Vishal Fitness</span></h2>
+                <div class="video-wrapper">
+                    <iframe width="100%" height="500" src="https://www.youtube.com/embed/dQw4w9WgXcQ" title="Gym Demo Video" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+                </div>
+            </div>
+        </section>
     </section>
 
-    <!-- TRAINERS SECTION -->
-    <section class="trainers-section">
+    <!-- PAGE 2: TRAINERS (Public View) -->
+    <section id="page-trainers" class="page-section hidden">
         <div class="container">
             <h2 class="section-title">Meet Our <span class="highlight">Expert Trainers</span></h2>
             <p class="section-subtitle">Dedicated professionals to guide your fitness journey.</p>
@@ -205,8 +225,8 @@
         </div>
     </section>
 
-    <!-- Enquiry Section -->
-    <section class="enquiry-section">
+    <!-- PAGE 3: ENQUIRY -->
+    <section id="page-enquiry" class="page-section hidden">
         <div class="enquiry-bg"></div>
         <div class="enquiry-overlay"></div>
         <div class="container enquiry-wrapper">
@@ -229,7 +249,7 @@
                     <div class="enquiry-grid">
                         <div class="form-group">
                             <label>Email Address <span class="mandatory">*</span></label>
-                            <input type="email" id="enq-email" class="form-control" placeholder="john@gmail.com" required>
+                            <input type="email" id="enq-email" class="form-control" placeholder="john@example.com" required>
                         </div>
                         <div class="form-group">
                             <label>Preferred Contact Method <span class="mandatory">*</span></label>
@@ -294,263 +314,398 @@
         </div>
     </section>
 
-    <!-- MEMBERSHIP REGISTRATION SECTION -->
-    <section id="membership-section" class="hidden container">
+    <!-- PAGE 4: MEMBERSHIP REGISTRATION (7-STEP WIZARD) -->
+    <section id="page-membership" class="page-section hidden container">
         <div class="membership-container">
-            <div class="membership-header">
+            
+            <!-- WIZARD HEADER -->
+            <div class="membership-header" id="wizard-header">
                 <h2>Complete Your Membership Registration</h2>
-                <p>Please fill out the details below to activate your account.</p>
+                <p>Please fill out details below to activate your account.</p>
+            </div>
+
+            <!-- THANK YOU SCREEN (Hidden Initially) -->
+            <div id="thank-you-screen" class="hidden" style="text-align: center; padding: 50px;">
+                <div style="font-size: 4rem; color: #28a745; margin-bottom: 20px;">
+                    <i class="fas fa-check-circle"></i>
+                </div>
+                <h2 style="color: var(--primary); margin-bottom: 15px;">Registration Successful!</h2>
+                <p style="font-size: 1.2rem; margin-bottom: 30px;">Your registration has been successfully completed.</p>
+                
+                <div style="background: rgba(255,255,255,0.05); padding: 20px; border-radius: 8px; display: inline-block; text-align: left; min-width: 300px;">
+                    <p><strong>Member ID:</strong> <span id="ty-member-id">Loading...</span></p>
+                    <p><strong>Plan:</strong> <span id="ty-plan">Loading...</span></p>
+                    <p><strong>Amount:</strong> <span id="ty-amount">Loading...</span></p>
+                    <p><strong>Valid Until:</strong> <span id="ty-expiry">Loading...</span></p>
+                </div>
+
+                <div style="margin-top: 30px;">
+                    <button class="btn-primary large-btn" onclick="navigateTo('profile')">Go to Dashboard</button>
+                </div>
             </div>
 
             <form id="membership-form" novalidate>
-                <!-- 1. Personal Information -->
-                <div class="form-block">
-                    <h3>🔹 Personal Information</h3>
-                    <div class="form-grid-2">
-                        <div class="form-group">
-                            <label>Full Name</label>
-                            <input type="text" id="mem-name" class="form-control" readonly style="background: #333; cursor: not-allowed;">
+                
+                <!-- WIZARD STEPPER (Updated to 7 steps) -->
+                <div class="wizard-stepper">
+                    <div class="step active" data-step="1">1</div>
+                    <div class="step-connector"></div>
+                    <div class="step" data-step="2">2</div>
+                    <div class="step-connector"></div>
+                    <div class="step" data-step="3">3</div>
+                    <div class="step-connector"></div>
+                    <div class="step" data-step="4">4</div>
+                    <div class="step-connector"></div>
+                    <div class="step" data-step="5">5</div>
+                    <div class="step-connector"></div>
+                    <div class="step" data-step="6">6</div>
+                    <div class="step-connector"></div>
+                    <div class="step" data-step="7">7</div>
+                </div>
+                <div class="wizard-labels">
+                    <span class="label active">Personal</span>
+                    <span class="label">Emergency</span>
+                    <span class="label">Medical</span>
+                    <span class="label">Fitness</span>
+                    <span class="label">Plan</span>
+                    <span class="label">Payment</span>
+                    <span class="label">Legal</span>
+                </div>
+
+                <!-- STEP 1: Personal Information -->
+                <div class="wizard-content active" id="step-1">
+                    <div class="form-block">
+                        <h3>🔹 Personal Information</h3>
+                        <div class="form-grid-2">
+                            <div class="form-group">
+                                <label>Full Name</label>
+                                <input type="text" id="mem-name" class="form-control" readonly style="background: #333; cursor: not-allowed;">
+                            </div>
+                            <div class="form-group">
+                                <label>Gender</label>
+                                <select id="mem-gender" class="form-control" required>
+                                    <option value="Male">Male</option>
+                                    <option value="Female">Female</option>
+                                    <option value="Other">Other</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="form-grid-2">
+                            <div class="form-group">
+                                <label>Date of Birth</label>
+                                <input type="date" id="mem-dob" class="form-control" required>
+                            </div>
+                            <div class="form-group">
+                                <label>Phone Number</label>
+                                <input type="tel" id="mem-phone" class="form-control" required>
+                            </div>
                         </div>
                         <div class="form-group">
-                            <label>Gender</label>
-                            <select id="mem-gender" class="form-control" required>
-                                <option value="Male">Male</option>
-                                <option value="Female">Female</option>
+                            <label>Email Address</label>
+                            <input type="email" id="mem-email" class="form-control" readonly style="background: #333; cursor: not-allowed;">
+                        </div>
+                        <div class="form-group">
+                            <label>Residential Address</label>
+                            <input type="text" id="mem-address" class="form-control" required>
+                        </div>
+                        <!-- Government ID Section -->
+                        <div class="form-grid-2">
+                            <div class="form-group">
+                                <label>ID Type (Aadhar / PAN)</label>
+                                <select id="mem-govt-id-name" class="form-control" onchange="validateIdType(this)" required>
+                                    <option value="">Select ID Type</option>
+                                    <option value="Aadhar">Aadhar Card</option>
+                                    <option value="PAN">PAN Card</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label>ID Number</label>
+                                <input type="text" id="mem-govt-id-number" class="form-control" placeholder="Enter ID Number" required>
+                                <small id="id-hint" style="color:#888; font-size:0.75rem; display:block; margin-top:4px;">Select ID type to see format.</small>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label>Upload ID Proof (JPG, PNG, PDF)</label>
+                            <input type="file" id="mem-govt-id-file" class="form-control" accept="image/jpeg,image/jpg,image/png,application/pdf" required>
+                            <small style="color: #888; font-size: 0.8rem;">Upload a clear photo or scan of your ID.</small>
+                        </div>
+                    </div>
+                    <div class="wizard-actions">
+                        <button type="button" class="btn-primary" onclick="nextStep(2)">Next: Emergency Contact <i class="fas fa-arrow-right"></i></button>
+                    </div>
+                </div>
+
+                <!-- STEP 2: Emergency Contact -->
+                <div class="wizard-content" id="step-2">
+                    <div class="form-block">
+                        <h3>🚨 Emergency Contact Details</h3>
+                        <div class="form-group">
+                            <label>Contact Name</label>
+                            <input type="text" id="mem-emer-name" class="form-control" required>
+                            <small style="color: #888; font-size: 0.8rem;">Only alphabets allowed (no numbers/special characters).</small>
+                        </div>
+                        <div class="form-group">
+                            <label>Relationship</label>
+                            <select id="mem-emer-rel" class="form-control" onchange="toggleRelOther(this)" required>
+                                <option value="">Select Relationship</option>
+                                <option value="Mother">Mother</option>
+                                <option value="Father">Father</option>
+                                <option value="Sister">Sister</option>
+                                <option value="Brother">Brother</option>
+                                <option value="Spouse">Spouse</option>
+                                <option value="Friend">Friend</option>
                                 <option value="Other">Other</option>
                             </select>
-                        </div>
-                    </div>
-                    <div class="form-grid-2">
-                        <div class="form-group">
-                            <label>Date of Birth</label>
-                            <input type="date" id="mem-dob" class="form-control" required>
+                            <input type="text" id="mem-emer-rel-other" class="form-control hidden" placeholder="Type relationship here..." style="margin-top: 10px;">
+                            <small id="rel-error" style="color: #e67e22; font-size: 0.75rem; display:none;">Only alphabets allowed.</small>
                         </div>
                         <div class="form-group">
-                            <label>Phone Number</label>
-                            <input type="tel" id="mem-phone" class="form-control" required>
+                            <label>Emergency Phone Number</label>
+                            <input type="tel" id="mem-emer-phone" class="form-control" placeholder="10-digit number" required>
                         </div>
                     </div>
-                    <div class="form-group">
-                        <label>Email Address</label>
-                        <input type="email" id="mem-email" class="form-control" readonly style="background: #333; cursor: not-allowed;">
+                    <div class="wizard-actions">
+                        <button type="button" class="btn-secondary" onclick="prevStep(1)"><i class="fas fa-arrow-left"></i> Back</button>
+                        <button type="button" class="btn-primary" onclick="nextStep(3)">Next: Medical <i class="fas fa-arrow-right"></i></button>
                     </div>
-                    <div class="form-group">
-                        <label>Residential Address</label>
-                        <input type="text" id="mem-address" class="form-control" required>
-                    </div>
-                    <!-- Government ID Section -->
-                    <div class="form-grid-2">
+                </div>
+
+                <!-- STEP 3: Medical Info -->
+                <div class="wizard-content" id="step-3">
+                    <div class="form-block">
+                        <h3>🩺 Health & Medical Information</h3>
                         <div class="form-group">
-                            <label>ID Type (Aadhar / PAN)</label>
-                            <select id="mem-govt-id-name" class="form-control" onchange="validateIdType(this)" required>
-                                <option value="">Select ID Type</option>
-                                <option value="Aadhar">Aadhar Card</option>
-                                <option value="PAN">PAN Card</option>
+                            <label>Do you have any medical conditions?</label>
+                            <div class="radio-group-flex">
+                                <label class="radio-label"><input type="radio" name="mem-med-cond" value="No" checked onchange="toggleMedCond(false)"> No</label>
+                                <label class="radio-label"><input type="radio" name="mem-med-cond" value="Yes" onchange="toggleMedCond(true)"> Yes</label>
+                            </div>
+                        </div>
+                        <div class="form-group hidden" id="med-desc-group">
+                            <label>Description of Conditions</label>
+                            <textarea id="mem-med-desc" class="form-control" rows="2"></textarea>
+                        </div>
+
+                        <!-- NEW FIELDS -->
+                        <div class="form-group">
+                            <label>Any Injuries?</label>
+                            <input type="text" id="mem-injuries" class="form-control" placeholder="e.g. Knee injury, Back pain">
+                        </div>
+                        <div class="form-group">
+                            <label>Allergies</label>
+                            <input type="text" id="mem-allergies" class="form-control" placeholder="e.g. Peanuts, Dust">
+                        </div>
+                        <div class="form-group">
+                            <label>Current Medications</label>
+                            <input type="text" id="mem-medications" class="form-control" placeholder="e.g. Blood pressure meds">
+                        </div>
+
+                        <div class="form-group">
+                            <label>Specific Conditions (Check if applicable)</label>
+                            <div class="checkbox-group">
+                                <label><input type="checkbox" name="med-check" value="BP"> Blood Pressure</label>
+                                <label><input type="checkbox" name="med-check" value="Diabetes"> Diabetes</label>
+                                <label><input type="checkbox" name="med-check" value="Heart"> Heart Conditions</label>
+                                <label><input type="checkbox" name="med-check" value="Asthma"> Asthma</label>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="wizard-actions">
+                        <button type="button" class="btn-secondary" onclick="prevStep(2)"><i class="fas fa-arrow-left"></i> Back</button>
+                        <button type="button" class="btn-primary" onclick="nextStep(4)">Next: Fitness <i class="fas fa-arrow-right"></i></button>
+                    </div>
+                </div>
+
+                <!-- STEP 4: Fitness Preferences -->
+                <div class="wizard-content" id="step-4">
+                    <div class="form-block">
+                        <h3>🏋 Fitness Goals & Preferences</h3>
+                        <div class="form-group">
+                            <label>Primary Goal</label>
+                            <select id="mem-goal" class="form-control" onchange="toggleMemGoalOther(this)" required>
+                                <option value="Weight Loss">Weight Loss</option>
+                                <option value="Muscle Gain">Muscle Gain</option>
+                                <option value="General Fitness">General Fitness</option>
+                                <option value="Other">Other</option>
+                            </select>
+                            <input type="text" id="mem-goal-other" class="form-control hidden" placeholder="Please specify your goal" style="margin-top: 10px;">
+                        </div>
+                        
+                        <!-- NEW FIELDS -->
+                        <div class="form-grid-2">
+                            <div class="form-group">
+                                <label>Experience Level</label>
+                                <select id="mem-experience" class="form-control" required>
+                                    <option value="Beginner">Beginner</option>
+                                    <option value="Intermediate">Intermediate</option>
+                                    <option value="Advanced">Advanced</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label>Trainer Preference</label>
+                                <select id="mem-trainer-pref" class="form-control" required>
+                                    <option value="Any">Any</option>
+                                    <option value="Male">Male Trainer</option>
+                                    <option value="Female">Female Trainer</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label>Preferred Workout Time</label>
+                            <select id="mem-time" class="form-control" required>
+                                <option value="Morning">Morning</option>
+                                <option value="Afternoon">Afternoon</option>
+                                <option value="Evening">Evening</option>
                             </select>
                         </div>
+                    </div>
+                    <div class="wizard-actions">
+                        <button type="button" class="btn-secondary" onclick="prevStep(3)"><i class="fas fa-arrow-left"></i> Back</button>
+                        <button type="button" class="btn-primary" onclick="nextStep(5)">Next: Plan <i class="fas fa-arrow-right"></i></button>
+                    </div>
+                </div>
+
+                <!-- STEP 5: Plan Details -->
+                <div class="wizard-content" id="step-5">
+                    <div class="form-block">
+                        <h3>💳 Membership Plan Details</h3>
+                        <div class="form-grid-2">
+                            <div class="form-group">
+                                <label>Select Plan</label>
+                                <select id="mem-plan" class="form-control" onchange="calculateMembershipDates()" required>
+                                    <option value="Monthly">Monthly (₹1000)</option>
+                                    <option value="Quarterly">Quarterly (₹2800)</option>
+                                    <option value="Half-Yearly">Half-Yearly (₹5000)</option>
+                                    <option value="Annual">Annual (₹9000)</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label>Start Date (Joining Date)</label>
+                                <input type="date" id="mem-start-date" class="form-control" onchange="calculateMembershipDates()" required>
+                                <small style="color: #e67e22; font-size: 0.75rem;">Must be in the current year only.</small>
+                            </div>
+                        </div>
+                        <div class="form-grid-2">
+                            <div class="form-group">
+                                <label>End Date (Auto-calculated)</label>
+                                <input type="date" id="mem-end-date" class="form-control" readonly>
+                            </div>
+                            <div class="form-group">
+                                <label>Total Amount</label>
+                                <input type="text" id="mem-amount" class="form-control" readonly value="₹1000">
+                            </div>
+                        </div>
+                    </div>
+                    <div class="wizard-actions">
+                        <button type="button" class="btn-secondary" onclick="prevStep(4)"><i class="fas fa-arrow-left"></i> Back</button>
+                        <button type="button" class="btn-primary" onclick="nextStep(6)">Next: Payment <i class="fas fa-arrow-right"></i></button>
+                    </div>
+                </div>
+
+                <!-- STEP 6: Payment (STRICT GATEWAY) -->
+                <div class="wizard-content" id="step-6">
+                    <div class="form-block">
+                        <h3>💰 Payment Details</h3>
+                        
+                        <!-- UPI QR SECTION -->
                         <div class="form-group">
-                            <label>ID Number</label>
-                            <input type="text" id="mem-govt-id-number" class="form-control" placeholder="Enter ID Number" required>
-                            <small id="id-hint" style="color:#888; font-size:0.75rem; display:block; margin-top:4px;">Select ID type to see format.</small>
+                            <label>Payment Method</label>
+                            <div class="radio-group-flex" style="margin-bottom: 15px;">
+                                <label class="radio-label">
+                                    <input type="radio" name="payment-method" value="UPI" checked onchange="togglePaymentMethod('UPI')"> 
+                                    <span>UPI (GPay / PhonePe)</span>
+                                </label>
+                            </div>
+
+                            <div id="upi-container">
+                                <p style="color: #ccc; margin-bottom: 10px;">Scan the QR code below using your mobile payment app to pay <strong><span id="qr-amount-display">₹1000</span></strong>.</p>
+                                
+                                <div class="qr-wrapper">
+                                   <!-- Use the exact filename you saved -->
+                                   <img src="payment-qr copy.jpeg" alt="Vishal Fitness Payment QR" class="qr-image">
+                                </div>
+                                
+                                <div class="upi-info-text">
+                                    <p><strong>UPI ID:</strong> nidhicutie2@oksbi</p>
+                                    <p><strong>Account Name:</strong> 263 - Nidhi Wadhawana</p>
+                                </div>
+                            </div>
                         </div>
-                    </div>
-                    <div class="form-group">
-                        <label>Upload ID Proof (JPG, PNG, PDF)</label>
-                        <input type="file" id="mem-govt-id-file" class="form-control" accept="image/jpeg,image/jpg,image/png,application/pdf" required>
-                        <small style="color: #888; font-size: 0.8rem;">Upload a clear photo or scan of your ID.</small>
-                    </div>
-                </div>
 
-                <!-- 2. Emergency Contact -->
-                <div class="form-block">
-                    <h3>🚨 Emergency Contact Details</h3>
-                    <div class="form-group">
-                        <label>Contact Name</label>
-                        <input type="text" id="mem-emer-name" class="form-control" required>
-                        <small style="color: #888; font-size: 0.8rem;">Only alphabets allowed (no numbers/special characters).</small>
-                    </div>
-                    <div class="form-group">
-                        <label>Relationship</label>
-                        <select id="mem-emer-rel" class="form-control" onchange="toggleRelOther(this)" required>
-                            <option value="">Select Relationship</option>
-                            <option value="Mother">Mother</option>
-                            <option value="Father">Father</option>
-                            <option value="Sister">Sister</option>
-                            <option value="Brother">Brother</option>
-                            <option value="Spouse">Spouse</option>
-                            <option value="Friend">Friend</option>
-                            <option value="Other">Other</option>
-                        </select>
-                        <input type="text" id="mem-emer-rel-other" class="form-control hidden" placeholder="Type relationship here..." style="margin-top: 10px;">
-                        <small id="rel-error" style="color: #e67e22; font-size: 0.75rem; display:none;">Only alphabets allowed.</small>
-                    </div>
-                    <div class="form-group">
-                        <label>Emergency Phone Number</label>
-                        <input type="tel" id="mem-emer-phone" class="form-control" placeholder="10-digit number" required>
-                    </div>
-                </div>
-
-                <!-- 3. Medical Info -->
-                <div class="form-block">
-                    <h3>🩺 Health & Medical Information</h3>
-                    <div class="form-group">
-                        <label>Do you have any medical conditions?</label>
-                        <div class="radio-group-flex">
-                            <label class="radio-label"><input type="radio" name="mem-med-cond" value="No" checked onchange="toggleMedCond(false)"> No</label>
-                            <label class="radio-label"><input type="radio" name="mem-med-cond" value="Yes" onchange="toggleMedCond(true)"> Yes</label>
-                        </div>
-                    </div>
-                    <div class="form-group hidden" id="med-desc-group">
-                        <label>Description</label>
-                        <textarea id="mem-med-desc" class="form-control" rows="3"></textarea>
-                    </div>
-                    <div class="form-group">
-                        <label>Specific Conditions (Select if applicable)</label>
-                        <div class="checkbox-group">
-                            <label><input type="checkbox" name="med-check" value="BP"> Blood Pressure</label>
-                            <label><input type="checkbox" name="med-check" value="Diabetes"> Diabetes</label>
-                            <label><input type="checkbox" name="med-check" value="Heart"> Heart Conditions</label>
-                            <label><input type="checkbox" name="med-check" value="Allergies"> Allergies</label>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- 4. Fitness Preferences -->
-                <div class="form-block">
-                    <h3>🏋 Fitness Goals & Preferences</h3>
-                    <div class="form-group">
-                        <label>Primary Goal</label>
-                        <select id="mem-goal" class="form-control" onchange="toggleMemGoalOther(this)" required>
-                            <option value="Weight Loss">Weight Loss</option>
-                            <option value="Muscle Gain">Muscle Gain</option>
-                            <option value="General Fitness">General Fitness</option>
-                            <option value="Other">Other</option>
-                        </select>
-                        <input type="text" id="mem-goal-other" class="form-control hidden" placeholder="Please specify your goal" style="margin-top: 10px;">
-                    </div>
-                    <div class="form-group">
-                        <label>Preferred Workout Time</label>
-                        <select id="mem-time" class="form-control" required>
-                            <option value="Morning">Morning</option>
-                            <option value="Afternoon">Afternoon</option>
-                            <option value="Evening">Evening</option>
-                        </select>
-                    </div>
-                    <div class="form-group">
-                        <label>Previous Gym Experience?</label>
-                        <select id="mem-exp" class="form-control" required>
-                            <option value="No">No</option>
-                            <option value="Yes">Yes</option>
-                        </select>
-                    </div>
-                </div>
-
-                <!-- 5. Plan Details -->
-                <div class="form-block">
-                    <h3>💳 Membership Plan Details</h3>
-                    <div class="form-grid-2">
+                        <div class="form-section-title">📸 Payment Verification</div>
+                        
                         <div class="form-group">
-                            <label>Select Plan</label>
-                            <select id="mem-plan" class="form-control" onchange="calculateMembershipDates()" required>
-                                <option value="Monthly">Monthly (₹1000)</option>
-                                <option value="Quarterly">Quarterly (₹2800)</option>
-                                <option value="Half-Yearly">Half-Yearly (₹5000)</option>
-                                <option value="Annual">Annual (₹9000)</option>
+                            <label>Upload Payment Screenshot <span class="mandatory">*</span></label>
+                            <input type="file" id="payment-screenshot-file" class="form-control" accept="image/*" required>
+                            <small style="color: #888;">Please upload a screenshot of the successful transaction.</small>
+                        </div>
+
+                        <div class="form-group">
+                            <label>Transaction ID (Optional)</label>
+                            <input type="text" id="payment-txn-id" class="form-control" placeholder="Enter UPI Transaction ID">
+                        </div>
+
+                        <div class="form-group">
+                            <label>Payment Status <span class="mandatory">*</span></label>
+                            <select id="payment-status-select" class="form-control" onchange="togglePaymentNote(this)" required>
+                                <option value="">-- Select Status --</option>
+                                <option value="Paid">Paid (Successfully)</option>
+                                <option value="Other">Other / Issue</option>
                             </select>
                         </div>
-                        <div class="form-group">
-                            <label>Start Date (Joining Date)</label>
-                            <input type="date" id="mem-start-date" class="form-control" onchange="calculateMembershipDates()" required>
-                            <small style="color: #e67e22; font-size: 0.75rem;">Must be in the current year only.</small>
+
+                        <div class="form-group hidden" id="payment-note-group">
+                            <label>Describe the issue</label>
+                            <textarea id="payment-note" class="form-control" rows="2" placeholder="e.g. Amount deducted but confirmation not received"></textarea>
                         </div>
                     </div>
-                    <div class="form-grid-2">
-                        <div class="form-group">
-                            <label>End Date (Auto-calculated)</label>
-                            <input type="date" id="mem-end-date" class="form-control" readonly>
-                        </div>
-                        <div class="form-group">
-                            <label>Total Amount</label>
-                            <input type="text" id="mem-amount" class="form-control" readonly value="₹1000">
-                        </div>
+
+                    <div class="wizard-actions">
+                        <button type="button" class="btn-secondary" onclick="prevStep(5)"><i class="fas fa-arrow-left"></i> Back</button>
+                        <!-- Pay & Continue Button -->
+                        <button type="button" class="btn-primary large-btn full-width-btn" onclick="validatePaymentAndNext()">Pay & Continue <i class="fas fa-arrow-right"></i></button>
                     </div>
                 </div>
 
-                <!-- 6. Payment (QR CODE & SCREENSHOT) -->
-                <div class="form-block">
-                    <h3>💰 Payment Details</h3>
-                    
-                    <!-- UPI QR SECTION -->
-                    <div class="form-group">
-                        <label>Payment Method</label>
-                        <div class="radio-group-flex" style="margin-bottom: 15px;">
-                            <label class="radio-label">
-                                <input type="radio" name="payment-method" value="UPI" checked onchange="togglePaymentMethod('UPI')"> 
-                                <span>UPI (GPay / PhonePe)</span>
+                <!-- STEP 7: Legal & Consent -->
+                <div class="wizard-content" id="step-7">
+                    <div class="form-block">
+                        <h3>📜 Legal & Consent</h3>
+                        <div class="form-group">
+                            <label>Upload Digital Signature (JPG, PNG, PDF)</label>
+                            <input type="file" id="mem-signature-file" class="form-control" accept="image/jpeg,image/jpg,image/png,application/pdf" required>
+                            <small style="color: #888; font-size: 0.8rem;">Upload a clear image of your handwritten signature.</small>
+                        </div>
+                        <div class="form-group">
+                            <label>Date of Submission</label>
+                            <input type="text" id="mem-sub-date" class="form-control" readonly>
+                        </div>
+                        
+                        <div class="checkbox-group" style="margin-top: 20px; display: block;">
+                            <label style="display: block; margin-bottom: 15px;">
+                                <input type="checkbox" id="legal-terms" required style="width: auto; margin-right: 10px;">
+                                I agree to the <strong>Terms & Conditions</strong> of Vishal Fitness Gym.
+                            </label>
+                            <label style="display: block; margin-bottom: 15px;">
+                                <input type="checkbox" id="legal-waiver" required style="width: auto; margin-right: 10px;">
+                                I understand the risks involved in physical training and sign the <strong>Liability Waiver</strong>.
                             </label>
                         </div>
-
-                        <div id="upi-container">
-                            <p style="color: #ccc; margin-bottom: 10px;">Scan the QR code below using your mobile payment app to pay <strong><span id="qr-amount-display">₹1000</span></strong>.</p>
-                            
-                            <div class="qr-wrapper">
-                               <!-- Use the exact filename you saved -->
-                               <img src="payment-qr copy.jpeg" alt="Vishal Fitness Payment QR" class="qr-image">
-                            </div>
-                            
-                            <div class="upi-info-text">
-                                <p><strong>UPI ID:</strong> nidhicutie2@oksbi</p>
-                                <p><strong>Account Name:</strong> 263 - Nidhi Wadhawana</p>
-                            </div>
-                        </div>
                     </div>
 
-                    <div class="form-section-title">📸 Payment Verification</div>
-                    
-                    <div class="form-group">
-                        <label>Upload Payment Screenshot <span class="mandatory">*</span></label>
-                        <input type="file" id="payment-screenshot-file" class="form-control" accept="image/*" required>
-                        <small style="color: #888;">Please upload a screenshot of the successful transaction.</small>
-                    </div>
-
-                    <div class="form-group">
-                        <label>Payment Status <span class="mandatory">*</span></label>
-                        <select id="payment-status-select" class="form-control" onchange="togglePaymentNote(this)" required>
-                            <option value="">-- Select Status --</option>
-                            <option value="Paid">Paid (Successfully)</option>
-                            <option value="Other">Other / Issue</option>
-                        </select>
-                    </div>
-
-                    <div class="form-group hidden" id="payment-note-group">
-                        <label>Describe the issue</label>
-                        <textarea id="payment-note" class="form-control" rows="2" placeholder="e.g. Amount deducted but confirmation not received"></textarea>
+                    <div class="wizard-actions">
+                        <button type="button" class="btn-secondary" onclick="prevStep(6)"><i class="fas fa-arrow-left"></i> Back</button>
+                        <button type="submit" class="btn-primary large-btn full-width-btn">Submit Registration</button>
                     </div>
                 </div>
 
-                <!-- 7. Legal -->
-                <div class="form-block">
-                    <h3>📜 Legal & Consent</h3>
-                    <div class="form-group">
-                        <label>Upload Digital Signature (JPG, PNG, PDF)</label>
-                        <input type="file" id="mem-signature-file" class="form-control" accept="image/jpeg,image/jpg,image/png,application/pdf" required>
-                        <small style="color: #888; font-size: 0.8rem;">Upload a clear image of your handwritten signature.</small>
-                    </div>
-                    <div class="form-group">
-                        <label>Date of Submission</label>
-                        <input type="text" id="mem-sub-date" class="form-control" readonly>
-                    </div>
-                </div>
-
-                <div class="form-actions">
-                    <button type="submit" class="btn-primary large-btn full-width-btn">Submit & Activate Membership</button>
-                </div>
             </form>
         </div>
     </section>
 
-    <!-- User Dashboard (Read-Only View) -->
-    <section id="user-dashboard" class="dashboard-section hidden container">
+    <!-- PAGE 5: USER DASHBOARD / PROFILE -->
+    <section id="page-profile" class="page-section dashboard-section hidden container">
         <h2 id="welcome-msg">Welcome</h2>
         
         <!-- Read Only Profile Card -->
@@ -590,6 +745,15 @@
                 </div>
             </div>
 
+            <!-- Nutrition Bucket Section (NEW) -->
+            <div class="card" style="width: 100%; text-align: left; margin-bottom: 20px;">
+                <h3 style="color: var(--primary); margin-bottom: 15px; border-bottom: 1px solid #333; padding-bottom: 10px;">🥗 Nutrition Bucket</h3>
+                <div class="nutrition-grid" id="user-nutrition-grid">
+                    <!-- Nutrition items will be loaded here -->
+                    <p style="color: #888; text-align: center;">Loading nutrition data...</p>
+                </div>
+            </div>
+
             <!-- Edit Profile Button (Only at the end) -->
             <div style="margin-top: 20px; text-align: center;">
                 <button class="btn-primary large-btn" onclick="toggleEditMode(true)">✏️ Edit Profile</button>
@@ -604,8 +768,8 @@
         <button class="btn-outline" onclick="logout()" style="margin-top: 30px;">Logout</button>
     </section>
 
-    <!-- ADMIN DASHBOARD SECTION -->
-    <section id="admin-dashboard" class="hidden container">
+    <!-- PAGE 6: ADMIN DASHBOARD -->
+    <section id="page-admin" class="page-section hidden container">
         <div class="admin-layout">
             <!-- Admin Sidebar -->
             <aside class="admin-sidebar">
@@ -620,6 +784,7 @@
                     <!-- COMBINED TAB -->
                     <button class="admin-nav-btn" onclick="switchAdminTab('memberships')">💳 Memberships & Verification</button>
                     <button class="admin-nav-btn" onclick="switchAdminTab('trainers')">🏋️ Trainers</button>
+                    <button class="admin-nav-btn" onclick="switchAdminTab('nutrition')">🥗 Nutrition Management</button> <!-- NEW TAB -->
                     <button class="admin-nav-btn" onclick="switchAdminTab('reviews')">⭐ Reviews</button>
                     <button class="admin-nav-btn" onclick="switchAdminTab('admins')">🛡️ Admins</button>
                 </nav>
@@ -651,17 +816,20 @@
                 <div id="admin-view-users" class="admin-view hidden">
                     <div class="view-header">
                         <h2>User Management</h2>
+                        <div class="search-bar">
+                            <input type="text" id="user-search" class="form-control" placeholder="Search by name or email..." onkeyup="filterUsers()">
+                        </div>
                     </div>
                     <div class="table-responsive">
-                        <table class="data-table">
+                        <table class="data-table" id="users-table">
                             <thead>
                                 <tr>
-                                    <th>Name</th>
-                                    <th>Email</th>
+                                    <th onclick="sortUsers('name')">Name <i class="fas fa-sort"></i></th>
+                                    <th onclick="sortUsers('email')">Email <i class="fas fa-sort"></i></th>
                                     <th>Phone</th>
                                     <th>Address</th>
                                     <th>Gender</th>
-                                    <th>DOB</th>
+                                    <th onclick="sortUsers('dob')">DOB <i class="fas fa-sort"></i></th>
                                     <th>Role</th>
                                     <th>Status</th>
                                     <th>Actions</th>
@@ -679,6 +847,7 @@
                         <table class="data-table">
                             <thead>
                                 <tr>
+                                    <th>Contacted</th>
                                     <th>Name</th>
                                     <th>Phone</th>
                                     <th>Email</th>
@@ -688,7 +857,6 @@
                                     <th>Enquired Date</th>
                                     <th>Budget</th>
                                     <th>Preferred Time</th>
-                                    <th>Enquiry Date</th>
                                 </tr>
                             </thead>
                             <tbody id="enquiries-table-body"></tbody>
@@ -706,7 +874,7 @@
                                     <th>User</th>
                                     <th>Plan</th>
                                     <th>Goal</th>
-                                    <th>Start - End</th>
+                                    <th onclick="sortMemberships('start_date')">Start Date <i class="fas fa-sort"></i></th>
                                     <th>Payment Info</th>
                                     <th>Emergency</th>
                                     <th>Medical</th>
@@ -745,7 +913,32 @@
                     </div>
                 </div>
 
-                <!-- 6. Reviews Management -->
+                <!-- 6. Nutrition Management (NEW VIEW) -->
+                <div id="admin-view-nutrition" class="admin-view hidden">
+                    <div class="view-header">
+                        <h2>Nutrition Management</h2>
+                        <button class="btn-primary" onclick="toggleNutritionModal()">+ Add Food Item</button>
+                    </div>
+                    <div class="table-responsive">
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>Image</th>
+                                    <th>Item Name</th>
+                                    <th>Ingredients</th>
+                                    <th>Calories</th>
+                                    <th>Protein</th>
+                                    <th>Carbs</th>
+                                    <th>Fats</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="nutrition-table-body"></tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- 7. Reviews Management -->
                 <div id="admin-view-reviews" class="admin-view hidden">
                     <h2>User Reviews & Ratings</h2>
                     <div class="table-responsive">
@@ -763,7 +956,8 @@
                     </div>
                 </div>
 
-                <!-- 7. Admins -->
+                
+                <!-- 8. Admins -->
                 <div id="admin-view-admins" class="admin-view hidden">
                     <div class="view-header">
                         <h2>Admin Management</h2>
@@ -787,7 +981,27 @@
         </div>
     </section>
 
-    <!-- Edit User Modal -->
+    <!-- PAGE 7: NUTRITION (Public View) -->
+    <section id="page-nutrition" class="page-section hidden container">
+        <h2 class="section-title">Nutrition <span class="highlight">Plans</span></h2>
+        <div class="nutrition-grid" id="public-nutrition-grid">
+            <!-- Public nutrition items loaded here -->
+        </div>
+    </section>
+
+    <!-- PAGE 8: REVIEWS (Public View) -->
+    <section id="page-reviews" class="page-section hidden container">
+        <h2 class="section-title">Member <span class="highlight">Reviews</span></h2>
+        <div class="reviews-header">
+            <p>See what our members say about their transformation.</p>
+            <button class="btn-primary" onclick="toggleReviewModal()">Write a Review</button>
+        </div>
+        <div class="reviews-grid" id="public-reviews-grid">
+            <!-- Reviews will be loaded here -->
+        </div>
+    </section>
+
+    <!-- Modals... (Keeping existing Modal structure for Login, Edit User, etc) -->
     <div id="edit-user-modal" class="modal-overlay hidden">
         <div class="modal-content">
             <span class="close-btn" onclick="toggleEditUserModal()">&times;</span>
@@ -826,7 +1040,6 @@
         </div>
     </div>
 
-    <!-- Create Admin Modal -->
     <div id="create-admin-modal" class="modal-overlay hidden">
         <div class="modal-content">
             <span class="close-btn" onclick="toggleCreateAdminModal()">&times;</span>
@@ -851,7 +1064,6 @@
         </div>
     </div>
 
-    <!-- Re-upload Documents Modal (User) -->
     <div id="reupload-modal" class="modal-overlay hidden">
         <div class="modal-content">
             <span class="close-btn" onclick="toggleReuploadModal()">&times;</span>
@@ -878,7 +1090,6 @@
         </div>
     </div>
 
-    <!-- Edit Membership Modal -->
     <div id="edit-membership-modal" class="modal-overlay hidden">
         <div class="modal-content">
             <span class="close-btn" onclick="toggleEditMembershipModal()">&times;</span>
@@ -924,7 +1135,6 @@
         </div>
     </div>
 
-    <!-- Trainer Modal (Add/Edit) -->
     <div id="trainer-modal" class="modal-overlay hidden">
         <div class="modal-content">
             <span class="close-btn" onclick="toggleTrainerModal()">&times;</span>
@@ -974,7 +1184,56 @@
         </div>
     </div>
 
-    <!-- Review Modal -->
+    <div id="nutrition-modal" class="modal-overlay hidden">
+        <div class="modal-content">
+            <span class="close-btn" onclick="toggleNutritionModal()">&times;</span>
+            <h3 id="nutrition-modal-title">Add Food Item</h3>
+            <form id="nutrition-form">
+                <input type="hidden" id="nutrition-id">
+                
+                <div class="form-group">
+                    <label>Food Image</label>
+                    <input type="file" id="nutrition-image" class="form-control" accept="image/*">
+                    <small style="color: #888; font-size: 0.8rem;">Leave empty to keep current photo when editing.</small>
+                </div>
+
+                <div class="form-group">
+                    <label>Item Name</label>
+                    <input type="text" id="nutrition-name" class="form-control" required>
+                </div>
+
+                <div class="form-group">
+                    <label>Ingredients</label>
+                    <textarea id="nutrition-ingredients" class="form-control" rows="3" placeholder="e.g., Chicken breast, Brown rice, Broccoli..." required></textarea>
+                </div>
+
+                <div class="form-grid-2">
+                    <div class="form-group">
+                        <label>Calories (kcal)</label>
+                        <input type="number" id="nutrition-calories" class="form-control" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Protein (g)</label>
+                        <input type="number" id="nutrition-protein" class="form-control" required>
+                    </div>
+                </div>
+
+                <div class="form-grid-2">
+                    <div class="form-group">
+                        <label>Carbs (g)</label>
+                        <input type="number" id="nutrition-carbs" class="form-control" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Fats (g)</label>
+                        <input type="number" id="nutrition-fats" class="form-control" required>
+                    </div>
+                </div>
+
+                <button type="submit" class="btn-primary full-width">Save Item</button>
+            </form>
+        </div>
+    </div>
+
     <div id="review-modal" class="modal-overlay hidden">
         <div class="modal-content">
             <span class="close-btn" onclick="toggleReviewModal()">&times;</span>
@@ -1004,7 +1263,6 @@
         </div>
     </div>
 
-    <!-- Rejection Reason Modal -->
     <div id="rejection-modal" class="modal-overlay hidden">
         <div class="modal-content" style="max-width: 400px;">
             <span class="close-btn" onclick="toggleRejectionModal()">&times;</span>
@@ -1017,7 +1275,6 @@
         </div>
     </div>
 
-    <!-- DOCUMENT PREVIEW MODAL -->
     <div id="doc-preview-modal" class="modal-overlay hidden">
         <div class="modal-content doc-preview-content">
             <span class="close-btn" onclick="toggleDocPreviewModal()">&times;</span>
@@ -1028,20 +1285,30 @@
         </div>
     </div>
 
-    <!-- REVIEWS SECTION AT THE BOTTOM -->
-    <section class="reviews-section">
-        <div class="container">
-            <h2 class="section-title">Member <span class="highlight">Reviews</span></h2>
-            <div class="reviews-header">
-                <p>See what our members say about their transformation.</p>
-                <button class="btn-primary" onclick="toggleReviewModal()">Write a Review</button>
-            </div>
-            <div class="reviews-grid" id="public-reviews-grid">
-                <!-- Reviews will be loaded here -->
-            </div>
-        </div>
-    </section>
-
     <script src="script.js"></script>
+
+    <!-- CHATBOT WIDGET -->
+<div id="chatbot-container">
+    <!-- Chat Window (Hidden by default) -->
+    <div id="chat-window">
+        <div id="chat-header">
+            <span>🏋️ Vishal Fitness AI</span>
+            <button id="close-chat" onclick="toggleChat()">✖</button>
+        </div>
+        <div id="chat-messages">
+            <div class="bot-msg">Hello! I am your AI Assistant. Ask me anything about our gym, timings, or plans!</div>
+        </div>
+        <div id="chat-input-area">
+            <input type="text" id="user-input" placeholder="Type a message..." onkeypress="handleEnter(event)">
+            <button onclick="sendMessage()"><i class="fas fa-paper-plane"></i></button>
+        </div>
+    </div>
+
+    <!-- Floating Toggle Button -->
+    <button id="chat-toggle-btn" onclick="toggleChat()">
+        <i class="fas fa-comment-dots"></i>
+    </button>
+</div>
+
 </body>
-</html>
+</html>                                                                                                                                          
