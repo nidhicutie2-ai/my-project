@@ -1,11 +1,13 @@
-// API Base URL
-const API_BASE_URL = 'http://localhost:3000/api';
+  // API Base URL
+const API_BASE_URL = 'http://127.0.0.1:3000/api';
 
 let currentUser = null;
 let currentMembership = null;
 let tempRejectionData = { id: null, type: null };
 let isEditMode = false; 
-let resetEmailTemp = ""; // To store email during password reset
+let resetEmailTemp = ""; 
+let allUsers = []; // Store for client-side search/sort
+let allMemberships = []; // Store for client-side search/sort
 
 // --- HELPER: Name Validation (Alphabets Only) ---
 function validateName(name) {
@@ -41,6 +43,31 @@ function togglePassword(inputId, icon) {
     }
 }
 
+// --- NAVIGATION LOGIC (SPA) ---
+function navigateTo(pageId) {
+    // Hide all pages
+    const pages = document.querySelectorAll('.page-section');
+    pages.forEach(page => page.classList.add('hidden'));
+
+    // Show target page
+    const target = document.getElementById(`page-${pageId}`);
+    if (target) {
+        target.classList.remove('hidden');
+        window.scrollTo(0, 0);
+    }
+
+    // If navigating to Enquiry (Public)
+    if (pageId === 'enquiry') {
+        // Ensure auth is handled if strictly needed, but public enquiry usually allowed
+    }
+}
+
+function toggleMobileMenu() {
+    const nav = document.querySelector('.navbar .container');
+    nav.classList.toggle('mobile-active');
+    // Simple toggle for demo, implementation depends on CSS
+}
+
 // --- Auth Modal & Tab Logic ---
 function toggleAuthModal() {
     const modal = document.getElementById('auth-modal');
@@ -50,7 +77,7 @@ function toggleAuthModal() {
     }, 10);
 
     if (!modal.classList.contains('hidden')) {
-        switchAuthView('login'); // Default to login on open
+        switchAuthView('login'); 
         setDateConstraints();
     }
 }
@@ -62,7 +89,6 @@ function switchAuthView(viewName) {
     const signupForm = document.getElementById('signup-form-container');
     const forgotForm = document.getElementById('forgot-password-container');
     
-    // Reset tabs visual state
     tabs.forEach(t => t.classList.remove('active'));
 
     if (viewName === 'login') {
@@ -70,18 +96,16 @@ function switchAuthView(viewName) {
         loginForm.classList.remove('hidden');
         signupForm.classList.add('hidden');
         forgotForm.classList.add('hidden');
-    } else if (viewName === 'signup') {
+    } else if (viewName === 'signup') { // FIXED: else if
         document.getElementById('tab-signup').classList.add('active');
         loginForm.classList.add('hidden');
         signupForm.classList.remove('hidden');
         forgotForm.classList.add('hidden');
-    } else if (viewName === 'forgot') {
-        // No active tab for forgot password
+    } else if (viewName === 'forgot') { // FIXED: else if
         loginForm.classList.add('hidden');
         signupForm.classList.add('hidden');
         forgotForm.classList.remove('hidden');
         
-        // Reset forgot password form steps
         document.getElementById('forgot-step-1').classList.remove('hidden');
         document.getElementById('forgot-step-2').classList.add('hidden');
         document.getElementById('forgot-email').value = '';
@@ -105,23 +129,21 @@ function setDateConstraints() {
 
     const memDateInput = document.getElementById('mem-start-date');
     if (memDateInput) {
-        // REQUIREMENT: Start Date restricted to CURRENT YEAR ONLY.
         const currentYear = today.getFullYear();
         memDateInput.min = `${currentYear}-01-01`;
         memDateInput.max = `${currentYear}-12-31`;
         
-        // If today falls within the current year (it always does), set default to today.
         if(todayStr >= memDateInput.min && todayStr <= memDateInput.max) {
             memDateInput.value = todayStr;
         } else {
-            memDateInput.value = memDateInput.min; // Default to Jan 1st of current year if edge case
+            memDateInput.value = memDateInput.min;
         }
     }
 }
 
 setDateConstraints();
 
-// --- CONTENT VALIDATION (OCR DISABLED) ---
+// --- CONTENT VALIDATION ---
 async function performSmartValidation(file, expectedType) {
     if (file.type !== 'application/pdf' && !file.type && !file.type.startsWith('image/')) {
         throw new Error("Invalid file format. Please upload a PDF or Image.");
@@ -171,13 +193,12 @@ document.getElementById('signup-form').addEventListener('submit', async function
     const address = document.getElementById('reg-address').value;
     const name = document.getElementById('reg-name').value.trim();
 
-    // Name Validation
     if (!validateName(name)) return;
 
-    // Email Validation: ONLY GMAIL ALLOWED
-    const emailRegex = /^[a-zA-Z0-9._%+-]+@gmail\.com$/;
+    // RELAXED EMAIL VALIDATION: Check for @ and .
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email)) {
-        showToast("Invalid email. Only Gmail addresses are allowed (e.g., user@gmail.com).", "error");
+        showToast("Invalid email format. Must contain '@' and '.'.", "error");
         return;
     }
 
@@ -186,8 +207,8 @@ document.getElementById('signup-form').addEventListener('submit', async function
         return;
     }
     const year = parseInt(dob.split('-')[0]);
-    if (year < 1996 || year > 2009) {
-        showToast("Date of Birth year must be between 1996 and 2009.", "error");
+    if (year < 1920 || year > 2016) {
+        showToast("Date of Birth year must be between 1920 and 2016.", "error");
         return;
     }
 
@@ -244,7 +265,6 @@ function validateIdType(select) {
     }
 }
 
-// NEW: Toggle Relationship "Other" input
 function toggleRelOther(select) {
     const otherInput = document.getElementById('mem-emer-rel-other');
     const relError = document.getElementById('rel-error');
@@ -260,7 +280,6 @@ function toggleRelOther(select) {
     }
 }
 
-// NEW: Toggle Payment Note Input
 function togglePaymentNote(select) {
     const noteGroup = document.getElementById('payment-note-group');
     if (select.value === 'Other') {
@@ -272,18 +291,87 @@ function togglePaymentNote(select) {
     }
 }
 
+// --- NEW: WIZARD NAVIGATION LOGIC (UPDATED FOR 7 STEPS) ---
+function nextStep(stepNumber) {
+    // Hide all steps
+    document.querySelectorAll('.wizard-content').forEach(el => el.classList.remove('active'));
+    document.querySelectorAll('.wizard-labels .label').forEach(el => el.classList.remove('active'));
+    document.querySelectorAll('.wizard-stepper .step').forEach(el => el.classList.remove('active'));
+
+    // Show target step
+    document.getElementById(`step-${stepNumber}`).classList.add('active');
+    
+    // Update Stepper
+    const steps = document.querySelectorAll('.wizard-stepper .step');
+    for(let i=0; i<stepNumber; i++) {
+        steps[i].classList.add('active');
+    }
+    
+    // Update Labels
+    const labels = document.querySelectorAll('.wizard-labels .label');
+    for(let i=0; i<stepNumber; i++) {
+        labels[i].classList.add('active');
+    }
+}
+
+function prevStep(stepNumber) {
+    document.querySelectorAll('.wizard-content').forEach(el => el.classList.remove('active'));
+    document.querySelectorAll('.wizard-labels .label').forEach(el => el.classList.remove('active'));
+    document.querySelectorAll('.wizard-stepper .step').forEach(el => el.classList.remove('active'));
+
+    document.getElementById(`step-${stepNumber}`).classList.add('active');
+    
+    const steps = document.querySelectorAll('.wizard-stepper .step');
+    for(let i=0; i<stepNumber; i++) {
+        steps[i].classList.add('active');
+    }
+
+    const labels = document.querySelectorAll('.wizard-labels .label');
+    for(let i=0; i<stepNumber; i++) {
+        labels[i].classList.add('active');
+    }
+}
+
+// STEP 6 VALIDATION: PAYMENT GATE
+function validatePaymentAndNext() {
+    const payFileInput = document.getElementById('payment-screenshot-file');
+    const payStatus = document.getElementById('payment-status-select').value;
+    const payNote = document.getElementById('payment-note').value.trim();
+
+    if (!payStatus) {
+        showToast("Please select payment status.", "error");
+        return;
+    }
+
+    if (payStatus === 'Other' && !payNote) {
+        showToast("Please describe the payment issue.", "error");
+        return;
+    }
+    
+    if (payFileInput.files.length === 0) {
+        showToast("Please upload a screenshot of payment.", "error");
+        return;
+    } else {
+        if (!payFileInput.files[0].type.startsWith('image/')) {
+            showToast("Payment screenshot must be an image.", "error");
+            return;
+        }
+    }
+
+    // If all checks passed, go to Step 7
+    nextStep(7);
+}
+
 document.getElementById('membership-form').addEventListener('submit', async function(e) {
     e.preventDefault();
     
-    // Validations
+    // --- Final Validation before Submit ---
     const name = document.getElementById('mem-name').value.trim();
     if (!validateName(name)) return;
 
-    // Emergency Name Validation (Alphabets Only)
     const emerName = document.getElementById('mem-emer-name').value.trim();
     if (!validateName(emerName)) return;
 
-    // Emergency Relationship Validation
     const relSelect = document.getElementById('mem-emer-rel');
     const relOther = document.getElementById('mem-emer-rel-other').value.trim();
     let finalRel = relSelect.value;
@@ -320,13 +408,11 @@ document.getElementById('membership-form').addEventListener('submit', async func
     const currentYear = new Date().getFullYear();
     const startYear = parseInt(startDateInput.split('-')[0]);
     
-    // REQUIREMENT: Start Date must be Current Year only.
     if(startYear !== currentYear) {
         showToast(`Joining Date must be in the current year (${currentYear}).`, "error");
         return;
     }
 
-    // Also ensure it's not in the past (though HTML constraint helps, server check is good)
     if(startDateInput < todayStr) {
         showToast("Joining Date cannot be in the past.", "error");
         return;
@@ -357,10 +443,10 @@ document.getElementById('membership-form').addEventListener('submit', async func
         return;
     }
     
-    // NEW: Payment Validation
     const payFileInput = document.getElementById('payment-screenshot-file');
     const payStatus = document.getElementById('payment-status-select').value;
     const payNote = document.getElementById('payment-note').value.trim();
+    const txnId = document.getElementById('payment-txn-id').value.trim();
 
     if (!payStatus) {
         showToast("Please select payment status.", "error");
@@ -373,7 +459,6 @@ document.getElementById('membership-form').addEventListener('submit', async func
     }
     
     if (payFileInput.files.length > 0) {
-        // Basic validation for image
         if (!payFileInput.files[0].type.startsWith('image/')) {
             showToast("Payment screenshot must be an image.", "error");
             return;
@@ -405,27 +490,53 @@ document.getElementById('membership-form').addEventListener('submit', async func
         return;
     }
 
+    // NEW FIELDS FOR 7-STEP WIZARD
+    const injuries = document.getElementById('mem-injuries').value.trim();
+    const allergies = document.getElementById('mem-allergies').value.trim();
+    const medications = document.getElementById('mem-medications').value.trim();
+    const trainerPref = document.getElementById('mem-trainer-pref').value;
+    const experienceLevel = document.getElementById('mem-experience').value;
+
+    // Legal Checkboxes
+    const termsCheck = document.getElementById('legal-terms').checked;
+    const waiverCheck = document.getElementById('legal-waiver').checked;
+
+    if (!termsCheck || !waiverCheck) {
+        showToast("You must agree to Terms & Liability Waiver.", "error");
+        return;
+    }
+
     const formData = new FormData();
     formData.append('userId', currentUser.id);
     formData.append('goal', goal);
     formData.append('plan', document.getElementById('mem-plan').value);
     formData.append('startDate', startDateInput);
     formData.append('endDate', document.getElementById('mem-end-date').value);
-    formData.append('paymentMode', 'UPI'); // Hardcoded for now as per requirements
+    formData.append('paymentMode', 'UPI'); 
     formData.append('emergencyName', emerName);
     formData.append('emergencyRel', finalRel);
     formData.append('emergencyPhone', emerPhone);
     formData.append('medicalCond', document.querySelector('input[name="mem-med-cond"]:checked')?.value || 'No');
     formData.append('medDesc', document.getElementById('mem-med-desc').value);
     formData.append('medChecks', Array.from(document.querySelectorAll('input[name="med-check"]:checked')).map(cb => cb.value).join(', '));
+    
+    // NEW MEDICAL FIELDS
+    formData.append('injuries', injuries);
+    formData.append('allergies', allergies);
+    formData.append('medications', medications);
+
+    // NEW FITNESS FIELDS
+    formData.append('trainerPref', trainerPref);
+    formData.append('experienceLevel', experienceLevel);
+
     formData.append('govIdType', idType);
     formData.append('govIdNumber', idNumber);
     
     if (idFileInput.files.length > 0) formData.append('govIdFile', idFileInput.files[0]);
     if (sigFileInput.files.length > 0) formData.append('signatureFile', sigFileInput.files[0]);
     
-    // NEW: Append Payment Data
     if (payFileInput.files.length > 0) formData.append('paymentScreenshotFile', payFileInput.files[0]);
+    formData.append('txnId', txnId); // NEW
     formData.append('paymentStatus', payStatus);
     if (payNote) formData.append('paymentNote', payNote);
 
@@ -440,7 +551,7 @@ document.getElementById('membership-form').addEventListener('submit', async func
         let method = 'POST';
 
         if (isEditMode && currentMembership) {
-            url = `${API_BASE_URL}/user/update-profile`; 
+            url = `${API_BASE_URL}/membership/reupload`; 
             method = 'PUT';
         }
 
@@ -459,31 +570,51 @@ document.getElementById('membership-form').addEventListener('submit', async func
         showToast(isEditMode ? "Profile Updated Successfully!" : "Membership Registered Successfully!", "success");
         
         currentUser.has_completed_membership = true;
-        if(!isEditMode) {
-            const memRes = await fetch(`${API_BASE_URL}/admin/memberships`);
+        
+        if(!isEditMode && data.membership) {
+            showThankYouScreen(data.membership);
         } else {
-            Object.assign(currentMembership, data.membership); 
+            // If edit mode, go to dashboard
+            if(data.membership) Object.assign(currentMembership, data.membership); 
+            navigateTo('profile');
+            showDashboard(currentUser);
         }
-
-        document.getElementById('membership-section').classList.add('hidden');
-        showDashboard(currentUser);
     } catch (error) {
         console.error('Membership submission error:', error);
         showToast("Error submitting membership. Please try again.", "error");
     }
 });
 
-// --- PAYMENT DETAILS TOGGLE LOGIC ---
+function showThankYouScreen(membership) {
+    // Hide Form, Show Thank You
+    document.getElementById('wizard-header').classList.add('hidden');
+    document.querySelector('.wizard-stepper').classList.add('hidden');
+    document.querySelector('.wizard-labels').classList.add('hidden');
+    document.getElementById('membership-form').classList.add('hidden');
+    
+    document.getElementById('thank-you-screen').classList.remove('hidden');
+
+    // Populate data
+    document.getElementById('ty-member-id').innerText = `VF-${membership.user_id}`; // Pseudo ID
+    document.getElementById('ty-plan').innerText = membership.plan;
+    document.getElementById('ty-amount').innerText = `₹${getAmountFromPlan(membership.plan)}`;
+    document.getElementById('ty-expiry').innerText = formatDate(membership.end_date);
+}
+
+function getAmountFromPlan(plan) {
+    if(plan === 'Monthly') return '1000';
+    if(plan === 'Quarterly') return '2800';
+    if(plan === 'Half-Yearly') return '5000';
+    if(plan === 'Annual') return '9000';
+    return '0';
+}
+
 function togglePaymentDetails() {
-    // No longer needed as UPI is the only option and always shown
-    // Kept for compatibility if needed later
-    const paymentMode = document.getElementById('mem-payment-mode').value; // Hidden field or defaulted
-    // Logic handled by calculateMembershipDates now
+    const paymentMode = document.getElementById('mem-payment-mode').value; 
 }
 
 // --- TRAINER LOGIC ---
 
-// Load Trainers for Public Page only (Removed from Membership Page)
 async function loadPublicTrainers() {
     const grid = document.getElementById('public-trainers-grid');
     if(!grid) return;
@@ -493,8 +624,8 @@ async function loadPublicTrainers() {
         const data = await res.json();
         if(data.success && data.trainers.length > 0) {
             data.trainers.forEach(t => {
-                const photoSrc = t.photo ? `/uploads/${t.photo}` : 'https://picsum.photos/seed/gym/200/200';
-                // Added Instagram and Availability display
+                // FIX: Use full URL
+                const photoSrc = t.photo ? `http://127.0.0.1:3000/uploads/${t.photo}` : 'https://picsum.photos/seed/gym/200/200';
                 const instaDisplay = t.instagram ? `<p class="trainer-insta"><i class="fab fa-instagram"></i> ${t.instagram}</p>` : '';
                 const availDisplay = t.availability ? `<p class="trainer-schedule"><i class="far fa-clock"></i> ${t.availability}</p>` : '';
                 
@@ -618,7 +749,6 @@ async function loadPublicReviews() {
 
 // --- AUTH & DASHBOARD LOGIC ---
 
-// --- IMPROVED LOGIN LOGIC (As Requested) ---
 document.getElementById('login-form').addEventListener('submit', async function(e) {
     e.preventDefault();
     const role = document.getElementById('login-role').value;
@@ -641,7 +771,6 @@ document.getElementById('login-form').addEventListener('submit', async function(
         const data = await response.json();
 
         if (!data.success) {
-            // Detailed error logging for debugging
             console.error("Login Failed:", data.message);
             showToast(data.message, "error");
             return;
@@ -660,19 +789,35 @@ function loginSuccess(user) {
     showToast(`Welcome, ${user.name}!`, "success");
     toggleAuthModal();
     
-    document.querySelector('.hero-section').style.display = 'none';
-    document.querySelector('.navbar').style.display = 'none'; 
-    document.querySelector('.enquiry-section').style.display = 'none';
+    // Hide public nav
+    document.getElementById('public-nav').classList.add('hidden');
+    document.getElementById('nav-auth-btn').classList.add('hidden');
+    document.getElementById('user-nav-dropdown').classList.remove('hidden');
+
+    // Update Nav Profile Info
+    document.getElementById('nav-user-name').innerText = user.name;
+    document.getElementById('nav-user-role').innerText = user.role;
+
+    // Toggle Profile Dropdown Logic
+    const profileWrapper = document.querySelector('.nav-profile-wrapper');
+    const dropdown = document.querySelector('.nav-dropdown-menu');
+    
+    profileWrapper.onclick = function(e) {
+        e.stopPropagation();
+        dropdown.classList.toggle('hidden');
+    };
+    
+    // Close dropdown when clicking outside
+    document.addEventListener('click', function(e) {
+        if (!profileWrapper.contains(e.target)) {
+            dropdown.classList.add('hidden');
+        }
+    });
     
     if (user.role === 'Admin') {
-        document.querySelector('.trainers-section').style.display = 'none';
-        document.querySelector('.reviews-section').style.display = 'none';
+        navigateTo('admin');
         showAdminDashboard(user);
     } else {
-        // User logged in. Hide trainers initially as they will see the Dashboard.
-        document.querySelector('.trainers-section').style.display = 'none'; 
-        document.querySelector('.reviews-section').style.display = 'none';
-
         if (currentMembership) {
             let hasRejection = false;
             if(currentMembership.id_proof_status === 'Rejected') {
@@ -683,7 +828,6 @@ function loginSuccess(user) {
                 showToast(`Signature Rejected: ${currentMembership.signature_reason || 'Please upload a new one.'}`, "error");
                 hasRejection = true;
             }
-            // NEW: Check payment status if rejected by admin
             if (currentMembership.payment_verified === false && currentMembership.payment_reject_reason) {
                 showToast(`Payment Rejected: ${currentMembership.payment_reject_reason}`, "error");
                 hasRejection = true;
@@ -694,23 +838,30 @@ function loginSuccess(user) {
         }
 
         if (user.has_completed_membership) {
+            navigateTo('profile');
             showDashboard(user);
         } else {
+            navigateTo('membership');
             showMembershipForm(user);
         }
     }
 }
 
+// CONTINUATION FROM PREVIOUS PART: toggleEditMode
 function toggleEditMode(enable) {
-    const dashboard = document.getElementById('user-dashboard');
-    const memSection = document.getElementById('membership-section');
+    const dashboard = document.getElementById('page-profile');
+    const memSection = document.getElementById('page-membership');
     const submitBtn = memSection.querySelector('button[type="submit"]');
 
     if (enable) {
         isEditMode = true;
-        dashboard.classList.add('hidden');
-        memSection.classList.remove('hidden');
+        navigateTo('membership');
         
+        // If editing, bypass wizard steps and show final step or all? 
+        // For simplicity, just show the container, but form might need to be 'all steps visible' logic
+        // or navigate to Step 1. Let's go to Step 1.
+        nextStep(1);
+
         if(currentMembership) {
             document.getElementById('mem-plan').value = currentMembership.plan;
             document.getElementById('mem-goal').value = currentMembership.goal;
@@ -718,7 +869,6 @@ function toggleEditMode(enable) {
             document.getElementById('mem-end-date').value = currentMembership.end_date.split('T')[0];
             document.getElementById('mem-emer-name').value = currentMembership.emergency_name;
             
-            // Handle relationship dropdown for edit mode
             const relSelect = document.getElementById('mem-emer-rel');
             const relOther = document.getElementById('mem-emer-rel-other');
             const relOptions = Array.from(relSelect.options).map(o => o.value);
@@ -737,9 +887,8 @@ function toggleEditMode(enable) {
             
             document.getElementById('mem-govt-id-file').required = false;
             document.getElementById('mem-signature-file').required = false;
-            document.getElementById('payment-screenshot-file').required = false; // NEW
+            document.getElementById('payment-screenshot-file').required = false; 
             
-            // NEW: Pre-fill payment status
             if (currentMembership.payment_status) {
                 document.getElementById('payment-status-select').value = currentMembership.payment_status;
                 togglePaymentNote(document.getElementById('payment-status-select'));
@@ -750,23 +899,18 @@ function toggleEditMode(enable) {
         }
     } else {
         isEditMode = false;
-        memSection.classList.add('hidden');
-        dashboard.classList.remove('hidden');
+        navigateTo('profile');
         document.getElementById('mem-govt-id-file').required = true;
         document.getElementById('mem-signature-file').required = true;
-        document.getElementById('payment-screenshot-file').required = true; // NEW
+        document.getElementById('payment-screenshot-file').required = true; 
         submitBtn.innerText = "Submit & Activate Membership";
     }
 }
 
 function showDashboard(user) {
-    const dashboard = document.getElementById('user-dashboard');
+    const dashboard = document.getElementById('page-profile');
     dashboard.classList.remove('hidden');
     document.getElementById('welcome-msg').innerText = `Welcome, ${user.name} (${user.role})`;
-    
-    // REQUIREMENT: Remove "Meet Our Expert Trainers" section from User Profile page
-    const trainersSection = document.querySelector('.trainers-section');
-    if(trainersSection) trainersSection.style.display = 'none';
     
     checkMembershipExpiry();
 
@@ -800,7 +944,6 @@ function showDashboard(user) {
         sigStatus.innerText = currentMembership.signature_status;
         document.getElementById('dash-sig-reason').innerText = currentMembership.signature_reason ? `Reason: ${currentMembership.signature_reason}` : '';
 
-        // NEW: Show Payment Status in Dashboard
         const payStatus = document.getElementById('dash-payment-status');
         let payText = 'Pending';
         let payClass = 'Pending';
@@ -808,7 +951,7 @@ function showDashboard(user) {
         if (currentMembership.payment_verified === true) {
             payText = 'Verified';
             payClass = 'Approved';
-        } else if (currentMembership.payment_verified === false && currentMembership.payment_reject_reason) {
+        } else if (currentMembership.payment_verified === false) {
             payText = 'Rejected';
             payClass = 'Rejected';
         }
@@ -818,6 +961,9 @@ function showDashboard(user) {
         document.getElementById('dash-payment-note').innerText = currentMembership.payment_reject_reason ? `Reason: ${currentMembership.payment_reject_reason}` : (currentMembership.payment_note ? `Note: ${currentMembership.payment_note}` : '');
 
         document.getElementById('dash-emer').innerText = `${currentMembership.emergency_name} (${currentMembership.emergency_relationship}) - ${currentMembership.emergency_phone}`;
+        
+        // Load Nutrition Data for User
+        loadUserNutrition();
 
     } else {
         readOnlySection.classList.add('hidden');
@@ -826,17 +972,17 @@ function showDashboard(user) {
 }
 
 function showAdminDashboard(user) {
-    const dashboard = document.getElementById('admin-dashboard');
-    dashboard.classList.remove('hidden');
+    document.getElementById('page-admin').classList.remove('hidden');
     document.getElementById('admin-name-display').innerText = user.name;
     
     loadAdminStats();
     loadAdminUsers();
     loadAdminEnquiries();
-    loadAdminMemberships(); // Now handles Verification too
+    loadAdminMemberships(); 
     loadAdminAdmins();
     loadAdminTrainers();
     loadAdminReviews();
+    loadAdminNutrition(); // NEW: Load Admin Nutrition
 }
 
 function switchAdminTab(tabName) {
@@ -865,30 +1011,38 @@ async function loadAdminUsers() {
     try {
         const res = await fetch(`${API_BASE_URL}/admin/users`);
         const data = await res.json();
-        if(!data.success || data.users.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="9" style="text-align:center; padding:20px;">No users found.</td></tr>';
-            return;
-        }
-        data.users.forEach(u => {
-            const suspendIcon = u.status === 'Active' ? '<i class="fas fa-ban"></i> Suspend' : '<i class="fas fa-check-circle"></i> Activate';
-            const tr = document.createElement('tr');
-            tr.innerHTML = `
-                <td style="color:white !important;">${u.name || 'N/A'}</td>
-                <td style="color:white !important;">${u.email || 'N/A'}</td>
-                <td style="color:white !important;">${u.phone || 'N/A'}</td>
-                <td style="color:white !important;">${u.address || 'N/A'}</td>
-                <td style="color:white !important;">${u.gender || 'N/A'}</td>
-                <td style="color:white !important;">${u.dob ? formatDate(u.dob) : 'N/A'}</td>
-                <td><span class="badge" style="background:#333; padding:4px 8px; border-radius:4px;">${u.role}</span></td>
-                <td><span class="badge ${u.status === 'Active' ? 'badge-active' : 'badge-suspended'}">${u.status}</span></td>
-                <td>
-                    <button class="action-btn btn-edit" onclick="openEditUser(${u.id})"><i class="fas fa-pencil-alt"></i></button>
-                    <button class="action-btn btn-suspend" onclick="toggleUserStatus(${u.id}, '${u.status}')">${suspendIcon}</button>
-                    ${u.role !== 'Admin' ? `<button class="action-btn btn-delete" onclick="deleteUser(${u.id})"><i class="fas fa-trash-alt"></i></button>` : ''}
-                </td>`;
-            tbody.appendChild(tr);
-        });
+        allUsers = data.users || []; // Store for search
+        
+        renderUsersTable(allUsers);
     } catch (e) { console.error(e); }
+}
+
+function renderUsersTable(users) {
+    const tbody = document.getElementById('users-table-body');
+    tbody.innerHTML = ''; 
+    if(users.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="9" style="text-align:center; padding:20px;">No users found.</td></tr>';
+        return;
+    }
+    users.forEach(u => {
+        const suspendIcon = u.status === 'Active' ? '<i class="fas fa-ban"></i> Suspend' : '<i class="fas fa-check-circle"></i> Activate';
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+            <td style="color:white !important;">${u.name || 'N/A'}</td>
+            <td style="color:white !important;">${u.email || 'N/A'}</td>
+            <td style="color:white !important;">${u.phone || 'N/A'}</td>
+            <td style="color:white !important;">${u.address || 'N/A'}</td>
+            <td style="color:white !important;">${u.gender || 'N/A'}</td>
+            <td style="color:white !important;">${u.dob ? formatDate(u.dob) : 'N/A'}</td>
+            <td><span class="badge" style="background:#333; padding:4px 8px; border-radius:4px;">${u.role}</span></td>
+            <td><span class="badge ${u.status === 'Active' ? 'badge-active' : 'badge-suspended'}">${u.status}</span></td>
+            <td>
+                <button class="action-btn btn-edit" onclick="openEditUser(${u.id})"><i class="fas fa-pencil-alt"></i></button>
+                <button class="action-btn btn-suspend" onclick="toggleUserStatus(${u.id}, '${u.status}')">${suspendIcon}</button>
+                ${u.role !== 'Admin' ? `<button class="action-btn btn-delete" onclick="deleteUser(${u.id})"><i class="fas fa-trash-alt"></i></button>` : ''}
+            </td>`;
+        tbody.appendChild(tr);
+    });
 }
 
 async function loadAdminEnquiries() {
@@ -898,8 +1052,10 @@ async function loadAdminEnquiries() {
         const tbody = document.getElementById('enquiries-table-body');
         tbody.innerHTML = '';
         data.enquiries.forEach(eq => {
+            const checkedAttr = eq.is_contacted ? 'checked disabled' : '';
             const tr = document.createElement('tr');
             tr.innerHTML = `
+                <td style="text-align:center;"><input type="checkbox" ${checkedAttr} onchange="markEnquiryContacted(${eq.id}, this)"></td>
                 <td>${eq.name}</td><td>${eq.phone}</td><td>${eq.email}</td><td>${eq.contact_method}</td>
                 <td>${eq.goal}</td><td>${eq.plan_preference}</td><td>${eq.start_date || '-'}</td>
                 <td>${eq.budget || '-'}</td><td>${eq.preferred_time}</td>
@@ -909,146 +1065,184 @@ async function loadAdminEnquiries() {
     } catch (e) { console.error(e); }
 }
 
+async function markEnquiryContacted(id, checkbox) {
+    try {
+        const res = await fetch(`${API_BASE_URL}/admin/enquiry/${id}/contacted`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ isContacted: true })
+        });
+        if(res.ok) {
+            checkbox.disabled = true;
+            showToast("Enquiry marked as contacted", "success");
+        }
+    } catch(e) { console.error(e); }
+}
+
 async function loadAdminMemberships() {
     try {
         const res = await fetch(`${API_BASE_URL}/admin/memberships`);
         const data = await res.json();
         const tbody = document.getElementById('memberships-table-body');
         tbody.innerHTML = '';
+        allMemberships = data.memberships || []; // Store for sort
         
-        if (!data.success || data.memberships.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="10" style="text-align:center;">No memberships found.</td></tr>';
-            return;
-        }
-
-        data.memberships.forEach(m => {
-            const actionsHtml = `
-                <button class="action-btn btn-edit" onclick="openEditMembership(${m.id})"><i class="fas fa-pencil-alt"></i></button>
-            `;
-
-            // 1. Generate View Button for ID Proof (If file exists)
-            let idViewBtn = '';
-            if (m.gov_id_file_path) {
-                idViewBtn = `<button class="action-btn btn-view" onclick="previewDoc('${m.gov_id_file_path}')" title="View Document" style="margin-top:5px; width:100%;"><i class="fas fa-eye"></i> View Proof</button>`;
-            }
-
-            // 2. Generate View Button for Signature (If file exists)
-            let sigViewBtn = '';
-            if (m.signature_file_path) {
-                sigViewBtn = `<button class="action-btn btn-view" onclick="previewDoc('${m.signature_file_path}')" title="View Document" style="margin-top:5px; width:100%;"><i class="fas fa-eye"></i> View Sig</button>`;
-            }
-            
-            // 3. NEW: Payment Info Logic
-            let paymentInfoHtml = '';
-            if(m.payment_screenshot_path) {
-                paymentInfoHtml += `<button class="action-btn btn-view" onclick="previewDoc('${m.payment_screenshot_path}')" title="View Screenshot" style="margin-bottom:5px; width:100%;"><i class="fas fa-image"></i> View Screenshot</button>`;
-            }
-            
-            // Payment Status Actions
-            let paymentActions = '';
-            let paymentStatusBadge = `<span class="badge badge-Pending">Pending</span>`;
-            
-            if (m.payment_verified === true) {
-                paymentStatusBadge = `<span class="badge badge-Approved">Verified</span>`;
-            } else if (m.payment_verified === false) {
-                paymentStatusBadge = `<span class="badge badge-Rejected">Rejected</span>`;
-                if(m.payment_reject_reason) {
-                    paymentStatusBadge += `<br><small style="color:#dc3545; font-size:0.7rem;">${m.payment_reject_reason}</small>`;
-                }
-            }
-            
-            // If not verified yet, show Approve/Reject buttons
-            if (m.payment_verified !== true) {
-                paymentActions = `
-                    <div style="margin-top:5px;">
-                        <button class="action-btn btn-approve" onclick="verifyPayment(${m.id}, 'Verified')">✔ Approve</button>
-                        <button class="action-btn btn-reject" onclick="initPaymentReject(${m.id})">✖ Reject</button>
-                    </div>
-                `;
-            } else {
-                paymentActions = `<div style="margin-top:5px;">${paymentStatusBadge}</div>`;
-            }
-            
-            // Append User's note if status is "Other"
-            if(m.payment_status === 'Other' && m.payment_note) {
-                paymentInfoHtml += `<small style="color:#ffc107; display:block; margin-bottom:5px;">User Note: ${m.payment_note}</small>`;
-            }
-
-            // ID Verification Logic
-            let idActions = '';
-            if (m.id_proof_status === 'Pending') {
-                idActions = `
-                    <div style="margin-top:5px;">
-                        <button class="action-btn btn-approve" onclick="reviewDoc(${m.id}, 'id', 'Approved')">✔ Approve</button>
-                        <button class="action-btn btn-reject" onclick="initReject(${m.id}, 'id')">✖ Reject</button>
-                    </div>
-                    ${idViewBtn}
-                `;
-            } else {
-                idActions = `<div style="margin-top:5px;"><span class="badge badge-${m.id_proof_status}">${m.id_proof_status}</span>`;
-                if (m.id_proof_status === 'Rejected') {
-                    idActions += `<br><small style="color:#dc3545; font-size:0.7rem;">${m.id_proof_reason}</small>`;
-                }
-                idActions += `</div>`;
-                idActions += idViewBtn;
-            }
-
-            // Signature Verification Logic
-            let sigActions = '';
-            if (m.signature_status === 'Pending') {
-                sigActions = `
-                    <div style="margin-top:5px;">
-                        <button class="action-btn btn-approve" onclick="reviewDoc(${m.id}, 'signature', 'Approved')">✔ Approve</button>
-                        <button class="action-btn btn-reject" onclick="initReject(${m.id}, 'signature')">✖ Reject</button>
-                    </div>
-                    ${sigViewBtn}
-                `;
-            } else {
-                sigActions = `<div style="margin-top:5px;"><span class="badge badge-${m.signature_status}">${m.signature_status}</span>`;
-                if (m.signature_status === 'Rejected') {
-                    sigActions += `<br><small style="color:#dc3545; font-size:0.7rem;">${m.signature_reason}</small>`;
-                }
-                sigActions += `</div>`;
-                sigActions += sigViewBtn;
-            }
-
-            const medicalText = (m.medical_conditions && m.medical_conditions !== 'None') ? `${m.medical_conditions}` : 'None';
-            const specificChecks = m.specific_conditions ? `<br><small style="color:#aaa;">${m.specific_conditions}</small>` : '';
-
-            const emergencyText = `
-                <strong>${m.emergency_name}</strong> (${m.emergency_relationship})<br>
-                <span style="color:var(--primary);">${m.emergency_phone}</span>
-            `;
-
-            const tr = document.createElement('tr');
-            tr.innerHTML = `
-                <td><strong>${m.name}</strong><br><small>${m.email}</small></td>
-                <td>${m.plan}</td>
-                <td>${m.goal}</td>
-                <td>${formatDate(m.start_date)} - ${formatDate(m.end_date)}</td>
-                <td>
-                    <strong>UPI</strong><br>
-                    ${paymentInfoHtml}
-                    ${paymentActions}
-                </td>
-                <td>${emergencyText}</td>
-                <td>${medicalText}${specificChecks}</td>
-                <td>
-                    <strong>ID Proof</strong> (${m.gov_id_number || 'N/A'})
-                    ${idActions}
-                </td>
-                <td>
-                    <strong>Signature</strong>
-                    ${sigActions}
-                </td>
-                <td>${actionsHtml}</td>
-            `;
-            tbody.appendChild(tr);
-        });
+        renderMembershipsTable(allMemberships);
     } catch (e) { console.error(e); }
 }
 
-// --- DOCUMENT PREVIEW FUNCTIONALITY ---
+function renderMembershipsTable(memberships) {
+    const tbody = document.getElementById('memberships-table-body');
+    tbody.innerHTML = '';
+    
+    if (!memberships || memberships.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="10" style="text-align:center;">No memberships found.</td></tr>';
+        return;
+    }
+
+    memberships.forEach(m => {
+        const actionsHtml = `
+            <button class="action-btn btn-edit" onclick="openEditMembership(${m.id})"><i class="fas fa-pencil-alt"></i></button>
+        `;
+
+        let idViewBtn = '';
+        if (m.gov_id_file_path) {
+            idViewBtn = `<button class="action-btn btn-view" onclick="previewDoc('${m.gov_id_file_path}')" title="View Document" style="margin-top:5px; width:100%;"><i class="fas fa-eye"></i> View Proof</button>`;
+        }
+
+        let sigViewBtn = '';
+        if (m.signature_file_path) {
+            sigViewBtn = `<button class="action-btn btn-view" onclick="previewDoc('${m.signature_file_path}')" title="View Document" style="margin-top:5px; width:100%;"><i class="fas fa-eye"></i> View Sig</button>`;
+        }
+        
+        let paymentInfoHtml = '';
+        if(m.payment_screenshot_path) {
+            paymentInfoHtml += `<button class="action-btn btn-view" onclick="previewDoc('${m.payment_screenshot_path}')" title="View Screenshot" style="margin-bottom:5px; width:100%;"><i class="fas fa-image"></i> View Screenshot</button>`;
+        }
+        
+        let paymentActions = '';
+        let paymentStatusBadge = `<span class="badge badge-Pending">Pending</span>`;
+        
+        if (m.payment_verified === true) {
+            paymentStatusBadge = `<span class="badge badge-Approved">Verified</span>`;
+        } else if (m.payment_verified === false) {
+            paymentStatusBadge = `<span class="badge badge-Rejected">Rejected</span>`;
+            if(m.payment_reject_reason) {
+                paymentStatusBadge += `<br><small style="color:#dc3545; font-size:0.7rem;">${m.payment_reject_reason}</small>`;
+            }
+        }
+        
+        if (m.payment_verified !== true) {
+            paymentActions = `
+                <div style="margin-top:5px;">
+                    <button class="action-btn btn-approve" onclick="verifyPayment(${m.id}, 'Verified')">✔ Approve</button>
+                    <button class="action-btn btn-reject" onclick="initPaymentReject(${m.id})">✖ Reject</button>
+                </div>
+            `;
+        } else {
+            paymentActions = `<div style="margin-top:5px;">${paymentStatusBadge}</div>`;
+        }
+        
+        if(m.payment_status === 'Other' && m.payment_note) {
+            paymentInfoHtml += `<small style="color:#ffc107; display:block; margin-bottom:5px;">User Note: ${m.payment_note}</small>`;
+        }
+
+        let idActions = '';
+        if (m.id_proof_status === 'Pending') {
+            idActions = `
+                <div style="margin-top:5px;">
+                    <button class="action-btn btn-approve" onclick="reviewDoc(${m.id}, 'id', 'Approved')">✔ Approve</button>
+                    <button class="action-btn btn-reject" onclick="initReject(${m.id}, 'id')">✖ Reject</button>
+                </div>
+                ${idViewBtn}
+            `;
+        } else {
+            idActions = `<div style="margin-top:5px;"><span class="badge badge-${m.id_proof_status}">${m.id_proof_status}</span>`;
+            if (m.id_proof_status === 'Rejected') {
+                idActions += `<br><small style="color:#dc3545; font-size:0.7rem;">${m.id_proof_reason}</small>`;
+            }
+            idActions += `</div>`;
+            idActions += idViewBtn;
+        }
+
+        let sigActions = '';
+        if (m.signature_status === 'Pending') {
+            sigActions = `
+                <div style="margin-top:5px;">
+                    <button class="action-btn btn-approve" onclick="reviewDoc(${m.id}, 'signature', 'Approved')">✔ Approve</button>
+                    <button class="action-btn btn-reject" onclick="initReject(${m.id}, 'signature')">✖ Reject</button>
+                </div>
+                ${sigViewBtn}
+            `;
+        } else {
+            sigActions = `<div style="margin-top:5px;"><span class="badge badge-${m.signature_status}">${m.signature_status}</span>`;
+            if (m.signature_status === 'Rejected') {
+                sigActions += `<br><small style="color:#dc3545; font-size:0.7rem;">${m.signature_reason}</small>`;
+            }
+            sigActions += `</div>`;
+            sigActions += sigViewBtn;
+        }
+
+        const medicalText = (m.medical_conditions && m.medical_conditions !== 'None') ? `${m.medical_conditions}` : 'None';
+        const specificChecks = m.specific_conditions ? `<br><small style="color:#aaa;">${m.specific_conditions}</small>` : '';
+
+        const emergencyText = `
+            <strong>${m.emergency_name}</strong> (${m.emergency_relationship})<br>
+            <span style="color:var(--primary);">${m.emergency_phone}</span>
+        `;
+
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+            <td><strong>${m.name}</strong><br><small>${m.email}</small></td>
+            <td>${m.plan}</td>
+            <td>${m.goal}</td>
+            <td>${formatDate(m.start_date)} - ${formatDate(m.end_date)}</td>
+            <td>
+                <strong>UPI</strong><br>
+                ${paymentInfoHtml}
+                ${paymentActions}
+            </td>
+            <td>${emergencyText}</td>
+            <td>${medicalText}${specificChecks}</td>
+            <td>
+                <strong>ID Proof</strong> (${m.gov_id_number || 'N/A'})
+                ${idActions}
+            </td>
+            <td>
+                <strong>Signature</strong>
+                ${sigActions}
+            </td>
+            <td>${actionsHtml}</td>
+        `;
+        tbody.appendChild(tr);
+    });
+}
+
+// --- SEARCH & SORT LOGIC ---
+
+function filterUsers() {
+    const query = document.getElementById('user-search').value.toLowerCase();
+    const filtered = allUsers.filter(u => 
+        (u.name && u.name.toLowerCase().includes(query)) || 
+        (u.email && u.email.toLowerCase().includes(query))
+    );
+    renderUsersTable(filtered);
+}
+
+function sortUsers(key) {
+    allUsers.sort((a, b) => {
+        const valA = a[key] ? a[key].toLowerCase() : '';
+        const valB = b[key] ? b[key].toLowerCase() : '';
+        return valA.localeCompare(valB);
+    });
+    renderUsersTable(allUsers);
+}
+
+function sortMemberships(key) {
+    allMemberships.sort((a, b) => new Date(a[key]) - new Date(b[key]));
+    renderMembershipsTable(allMemberships);
+}
+
 function toggleDocPreviewModal() {
     const modal = document.getElementById('doc-preview-modal');
     modal.classList.remove('active');
@@ -1060,11 +1254,9 @@ function previewDoc(filename) {
     const modal = document.getElementById('doc-preview-modal');
     const container = document.getElementById('doc-preview-container');
     
-    // Ensure correct path
     const fileUrl = `/uploads/${filename}`;
     const ext = filename.split('.').pop().toLowerCase();
 
-    // Determine content type
     if (['jpg', 'jpeg', 'png', 'gif', 'webp'].includes(ext)) {
         container.innerHTML = `<img src="${fileUrl}" alt="Document Preview" style="max-width: 100%; max-height: 70vh; object-fit: contain;">`;
     } else if (ext === 'pdf') {
@@ -1089,11 +1281,10 @@ function initReject(id, type) {
     setTimeout(() => modal.classList.add('active'), 10);
 }
 
-// NEW: Payment Rejection Init
 let tempPaymentRejectId = null;
 function initPaymentReject(id) {
     tempPaymentRejectId = id;
-    document.getElementById('reject-reason-input').value = ''; // Reuse reason input
+    document.getElementById('reject-reason-input').value = ''; 
     const modal = document.getElementById('rejection-modal');
     modal.querySelector('h3').innerText = "Reject Payment";
     modal.classList.remove('hidden');
@@ -1104,7 +1295,6 @@ function toggleRejectionModal() {
     const modal = document.getElementById('rejection-modal');
     modal.classList.remove('active');
     setTimeout(() => modal.classList.add('hidden'), 300);
-    // Reset title just in case
     setTimeout(() => modal.querySelector('h3').innerText = "Reject Document", 300);
 }
 
@@ -1112,7 +1302,6 @@ async function confirmRejection() {
     const reason = document.getElementById('reject-reason-input').value;
     if(!reason) return showToast("Please provide a reason", "error");
     
-    // Check if it is a Payment Rejection or Document Rejection
     if (tempPaymentRejectId) {
         await verifyPayment(tempPaymentRejectId, 'Rejected', reason);
         tempPaymentRejectId = null;
@@ -1133,12 +1322,11 @@ async function reviewDoc(id, type, status, reason = '') {
         const data = await res.json();
         if(data.success) {
             showToast(`Document ${status}`, "success");
-            loadAdminMemberships(); // Reload the combined table
+            loadAdminMemberships(); 
         }
     } catch(e) { showToast("Error updating status", "error"); }
 }
 
-// NEW: Verify Payment Function
 async function verifyPayment(id, status, reason = '') {
     try {
         const res = await fetch(`${API_BASE_URL}/admin/membership/${id}/verify-payment`, {
@@ -1404,7 +1592,6 @@ document.getElementById('edit-user-form').addEventListener('submit', async funct
         dob: document.getElementById('edit-dob').value
     };
     
-    // Name Validation
     if (!validateName(name)) return;
 
     try {
@@ -1436,7 +1623,6 @@ document.getElementById('create-admin-form').addEventListener('submit', async fu
         pass: document.getElementById('new-admin-pass').value
     };
     
-    // Name Validation
     if (!validateName(name)) return;
 
     try {
@@ -1456,8 +1642,18 @@ document.getElementById('create-admin-form').addEventListener('submit', async fu
 });
 
 function showMembershipForm(user) {
-    const memSection = document.getElementById('membership-section');
+    const memSection = document.getElementById('page-membership');
     memSection.classList.remove('hidden');
+    // Start at Step 1
+    nextStep(1);
+    
+    // Reset Thank You screen if hidden previously
+    document.getElementById('wizard-header').classList.remove('hidden');
+    document.querySelector('.wizard-stepper').classList.remove('hidden');
+    document.querySelector('.wizard-labels').classList.remove('hidden');
+    document.getElementById('membership-form').classList.remove('hidden');
+    document.getElementById('thank-you-screen').classList.add('hidden');
+
     document.getElementById('mem-name').value = user.name || '';
     document.getElementById('mem-email').value = user.email || '';
     document.getElementById('mem-phone').value = user.phone || '';
@@ -1465,7 +1661,6 @@ function showMembershipForm(user) {
     document.getElementById('mem-gender').value = user.gender || 'Male';
     if(user.dob) document.getElementById('mem-dob').value = user.dob.split('T')[0];
     
-    // Ensure Date Constraints are set for the form
     setDateConstraints();
     
     const today = new Date().toISOString().split('T')[0];
@@ -1508,19 +1703,19 @@ function calculateMembershipDates() {
     const startDateInput = document.getElementById('mem-start-date').value;
     const amountInput = document.getElementById('mem-amount');
     const endDateInput = document.getElementById('mem-end-date');
-    const qrAmountDisplay = document.getElementById('qr-amount-display'); // Update QR Text
+    const qrAmountDisplay = document.getElementById('qr-amount-display'); 
     
     if (!startDateInput) return;
     let monthsToAdd = 0;
     let amount = 0;
     switch(planType) {
-        case 'Monthly': monthsToAdd = 1; amount = 1000; break;
+        case 'Monthly': monthsToAdd =1; amount = 1000; break;
         case 'Quarterly': monthsToAdd = 3; amount = 2800; break;
         case 'Half-Yearly': monthsToAdd = 6; amount = 5000; break;
         case 'Annual': monthsToAdd = 12; amount = 9000; break;
     }
     amountInput.value = `₹${amount}`;
-    if(qrAmountDisplay) qrAmountDisplay.innerText = `₹${amount}`; // NEW
+    if(qrAmountDisplay) qrAmountDisplay.innerText = `₹${amount}`; 
     
     const startDate = new Date(startDateInput);
     const endDate = new Date(startDate);
@@ -1566,10 +1761,7 @@ document.getElementById('enquiry-form').addEventListener('submit', async functio
     const budget = document.getElementById('enq-budget').value;
     const time = document.querySelector('input[name="enq-time"]:checked')?.value;
 
-    // Name Validation
-    if (!validateName(name)) return;
-
-    if (!phone.match(/^[0-9]{10}$/)) { showToast("Valid 10-digit phone required.", "error"); return; }
+    if (!validateName(name)) return;                                                                                                                                                                                        if (!phone.match(/^[0-9]{10}$/)) { showToast("Valid 10-digit phone required.", "error"); return; }
     if (!email.match(/^[^\s@]+@[^\s@]+\.[^\s@]+$/)) { showToast("Invalid email.", "error"); return; }
     if (!plan) { showToast("Select a preferred plan.", "error"); return; }
     if (!time) { showToast("Select preferred workout time.", "error"); return; }
@@ -1687,7 +1879,7 @@ function toggleReuploadModal(autoOpen = false) {
             if(currentMembership.gov_id_type === 'Aadhar') placeholder = "12-digit Aadhar Number";
             if(currentMembership.gov_id_type === 'PAN') placeholder = "PAN Number (e.g. ABCDE1234F)";
             document.getElementById('reupload-id-number').placeholder = placeholder;
-            msg.push("ID Proof was rejected. Please upload a new one and verify the number.");
+            msg.push("ID Proof was rejected. Please upload a new one and verify number.");
         } else {
             idGroup.style.display = 'none';
             document.getElementById('reupload-id-file').removeAttribute('required');
@@ -1703,7 +1895,6 @@ function toggleReuploadModal(autoOpen = false) {
             document.getElementById('reupload-sig-file').removeAttribute('required');
         }
         
-        // NEW: Handle Payment Rejection in Reupload (Simplification: User just re-uploads via edit profile for now, but we add a note)
         if (currentMembership.payment_verified === false && currentMembership.payment_reject_reason) {
              msg.push(`Payment was rejected: ${currentMembership.payment_reject_reason}. Please edit your profile to update payment details.`);
         }
@@ -1780,16 +1971,12 @@ function logout() {
     currentUser = null;
     currentMembership = null;
     isEditMode = false;
-    document.querySelector('.hero-section').style.display = 'flex';
-    document.querySelector('.navbar').style.display = 'block';
-    document.querySelector('.enquiry-section').style.display = 'flex';
-    // Reset to landing page state (show trainers)
-    document.querySelector('.trainers-section').style.display = 'block'; 
-    document.querySelector('.reviews-section').style.display = 'block'; 
-    document.getElementById('user-dashboard').classList.add('hidden');
-    document.getElementById('membership-section').classList.add('hidden');
-    document.getElementById('admin-dashboard').classList.add('hidden');
-    document.getElementById('membership-widget').classList.add('hidden');
+    // Show Public Nav
+    document.getElementById('public-nav').classList.remove('hidden');
+    document.getElementById('nav-auth-btn').classList.remove('hidden');
+    document.getElementById('user-nav-dropdown').classList.add('hidden');
+
+    navigateTo('home');
     showToast("Logged out successfully.", "success");
 }
 
@@ -1802,20 +1989,13 @@ function showToast(message, type = "success") {
     setTimeout(() => { toast.remove(); }, 3000);
 }
 
-function toggleMobileMenu() {
-    showToast("Mobile menu placeholder", "success");
-}
-
-// --- FORGOT PASSWORD LOGIC ---
-
 document.getElementById('forgot-email-form').addEventListener('submit', async function(e) {
     e.preventDefault();
     const email = document.getElementById('forgot-email').value.trim();
     
-    // Basic Email Validation
-    const emailRegex = /^[a-zA-Z0-9._%+-]+@gmail\.com$/;
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email)) {
-        showToast("Please enter a valid Gmail address.", "error");
+        showToast("Please enter a valid email address.", "error");
         return;
     }
 
@@ -1827,7 +2007,7 @@ document.getElementById('forgot-email-form').addEventListener('submit', async fu
         });
         const data = await response.json();
         if (data.success) {
-            showToast(data.message, "success");
+            showToast(data.message, "success"); 
             resetEmailTemp = email;
             document.getElementById('forgot-step-1').classList.add('hidden');
             document.getElementById('forgot-step-2').classList.remove('hidden');
@@ -1873,7 +2053,6 @@ document.getElementById('reset-password-form').addEventListener('submit', async 
         });
         const data = await response.json();
         if (data.success) {
-            // Updated success message for clarity
             showToast("Password updated! Please login with your new password.", "success");
             switchAuthView('login');
         } else {
@@ -1885,7 +2064,235 @@ document.getElementById('reset-password-form').addEventListener('submit', async 
     }
 });
 
-document.addEventListener('DOMContentLoaded', () => {
-    loadPublicTrainers();
-    loadPublicReviews();
+// --- CHATBOT LOGIC ---
+
+function toggleChat() {
+    const chatWindow = document.getElementById('chat-window');
+    const toggleBtn = document.getElementById('chat-toggle-btn');
+    
+    if (chatWindow.style.display === 'none' || chatWindow.style.display === '') {
+        chatWindow.style.display = 'flex';
+        toggleBtn.style.display = 'none';
+        const chatMessages = document.getElementById('chat-messages');
+        chatMessages.scrollTop = chatMessages.scrollHeight;
+    } else {
+        chatWindow.style.display = 'none';
+        toggleBtn.style.display = 'flex';
+    }
+}
+
+function handleEnter(event) {
+    if (event.key === 'Enter') {
+        sendMessage();
+    }
+}
+
+async function sendMessage() {
+    const inputField = document.getElementById('user-input');
+    const message = inputField.value.trim();
+    const chatMessages = document.getElementById('chat-messages');
+
+    if (!message) return;
+
+    const userMsgDiv = document.createElement('div');
+    userMsgDiv.className = 'msg user-msg';
+    userMsgDiv.innerText = message;
+    chatMessages.appendChild(userMsgDiv);
+    
+    inputField.value = '';
+    chatMessages.scrollTop = chatMessages.scrollHeight;
+
+    try {
+        const response = await fetch(`${API_BASE_URL}/chat`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ message })
+        });
+        const data = await response.json();
+
+        const botMsgDiv = document.createElement('div');
+        botMsgDiv.className = 'msg bot-msg';
+        
+        if(data.reply) {
+            botMsgDiv.innerHTML = data.reply.replace(/\n/g, '<br>');
+        } else {
+            botMsgDiv.innerText = "Sorry, I couldn't understand that.";
+        }
+        
+        chatMessages.appendChild(botMsgDiv);
+        chatMessages.scrollTop = chatMessages.scrollHeight;
+
+    } catch (error) {
+        console.error('Chatbot Error:', error);
+        const errorDiv = document.createElement('div');
+        errorDiv.className = 'msg bot-msg';
+        errorDiv.style.color = 'red';
+        errorDiv.innerText = "Error connecting to server.";
+        chatMessages.appendChild(errorDiv);
+        chatMessages.scrollTop = chatMessages.scrollHeight;
+    }
+}
+
+// ================= NUTRITION LOGIC (NEW) =================
+
+// 1. Load Nutrition Data for User Dashboard
+async function loadUserNutrition() {
+    const grid = document.getElementById('user-nutrition-grid');
+    if(!grid) return;
+    grid.innerHTML = '';
+    try {
+        const res = await fetch(`${API_BASE_URL}/nutrition`);
+        const data = await res.json();
+        if(data.success && data.items.length > 0) {
+            data.items.forEach(item => {
+                // FIX: Use full URL
+                const imgSrc = item.image_url ? `http://127.0.0.1:3000/uploads/${item.image_url}` : 'https://picsum.photos/seed/food/200/200';
+                const card = document.createElement('div');
+                card.className = 'nutrition-card';
+                card.innerHTML = `
+                    <img src="${imgSrc}" alt="${item.name}" class="nutrition-img">
+                    <div class="nutrition-content">
+                        <h4>${item.name}</h4>
+                        <p class="nutrition-ingredients">${item.ingredients}</p>
+                        <div class="nutrition-macros">
+                            <span><strong>${item.calories}</strong> kcal</span>
+                            <span><strong>${item.protein}g</strong> Protein</span>
+                            <span><strong>${item.carbs}g</strong> Carbs</span>
+                            <span><strong>${item.fats}g</strong> Fats</span>
+                        </div>
+                    </div>
+                `;
+                grid.appendChild(card);
+            });
+        } else {
+            grid.innerHTML = '<p style="color:#888; text-align:center;">No nutrition plans available.</p>';
+        }
+    } catch(e) { 
+        console.error(e);
+        grid.innerHTML = '<p style="color:red;">Error loading nutrition data.</p>';
+    }
+}
+
+// 2. Load Nutrition Data for Admin Panel
+async function loadAdminNutrition() {
+    const tbody = document.getElementById('nutrition-table-body');
+    if(!tbody) return;
+    tbody.innerHTML = '';
+    try {
+        const res = await fetch(`${API_BASE_URL}/admin/nutrition`);
+        const data = await res.json();
+        if(data.success && data.items.length > 0) {
+            data.items.forEach(item => {
+                // FIX: Use full URL
+                const imgSrc = item.image_url ? `http://127.0.0.1:3000/uploads/${item.image_url}` : '';
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td>${imgSrc ? `<img src="${imgSrc}" style="width:40px;height:40px;object-fit:cover;border-radius:4px;">` : '-'}</td>
+                    <td><strong>${item.name}</strong></td>
+                    <td style="font-size:0.85rem; color:#ccc;">${item.ingredients.substring(0, 30)}...</td>
+                    <td>${item.calories}</td>
+                    <td>${item.protein}</td>
+                    <td>${item.carbs}</td>
+                    <td>${item.fats}</td>
+                    <td>
+                        <button class="action-btn btn-edit" onclick="editNutrition(${item.id})"><i class="fas fa-edit"></i></button>
+                        <button class="action-btn btn-delete" onclick="deleteNutrition(${item.id})"><i class="fas fa-trash"></i></button>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        } else {
+            tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;">No nutrition items found.</td></tr>';
+        }
+    } catch(e) { 
+        console.error(e); 
+        tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;">Error loading data.</td></tr>';
+    }
+}
+
+// 3. Nutrition Modal Logic
+function toggleNutritionModal() {
+    const modal = document.getElementById('nutrition-modal');
+    modal.classList.toggle('hidden');
+    setTimeout(() => modal.classList.toggle('active'), 10);
+    if(!modal.classList.contains('hidden')) {
+        document.getElementById('nutrition-form').reset();
+        document.getElementById('nutrition-id').value = '';
+        document.getElementById('nutrition-modal-title').innerText = "Add Food Item";
+    }
+}
+
+// 4. Handle Edit Click
+async function editNutrition(id) {
+    try {
+        const res = await fetch(`${API_BASE_URL}/admin/nutrition`);
+        const data = await res.json();
+        const item = data.items.find(i => i.id === id);
+        if(item) {
+            document.getElementById('nutrition-id').value = item.id;
+            document.getElementById('nutrition-name').value = item.name;
+            document.getElementById('nutrition-ingredients').value = item.ingredients;
+            document.getElementById('nutrition-calories').value = item.calories;
+            document.getElementById('nutrition-protein').value = item.protein;
+            document.getElementById('nutrition-carbs').value = item.carbs;
+            document.getElementById('nutrition-fats').value = item.fats;
+            document.getElementById('nutrition-modal-title').innerText = "Edit Food Item";
+            toggleNutritionModal();
+        }
+    } catch(e) { console.error(e); }
+}
+
+// 5. Handle Nutrition Form Submit (Create/Update)
+document.getElementById('nutrition-form').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    const id = document.getElementById('nutrition-id').value;
+    const isEdit = !!id;
+    
+    const formData = new FormData();
+    formData.append('name', document.getElementById('nutrition-name').value);
+    formData.append('ingredients', document.getElementById('nutrition-ingredients').value);
+    formData.append('calories', document.getElementById('nutrition-calories').value);
+    formData.append('protein', document.getElementById('nutrition-protein').value);
+    formData.append('carbs', document.getElementById('nutrition-carbs').value);
+    formData.append('fats', document.getElementById('nutrition-fats').value);
+    
+    const photoInput = document.getElementById('nutrition-image');
+    if (photoInput.files.length > 0) formData.append('nutritionImage', photoInput.files[0]);
+    
+    try {
+        const url = isEdit ? `${API_BASE_URL}/admin/nutrition/${id}` : `${API_BASE_URL}/admin/nutrition`;
+        const method = isEdit ? 'PUT' : 'POST';
+        
+        const res = await fetch(url, { method: method, body: formData });
+        const data = await res.json();
+        
+        if(data.success) {
+            showToast(data.message, "success");
+            toggleNutritionModal();
+            loadAdminNutrition(); // Refresh Admin Table
+            loadUserNutrition(); // Refresh User Dashboard
+        } else {
+            showToast(data.message, "error");
+        }
+    } catch(e) { 
+        console.error(e); 
+        showToast("Error saving nutrition item", "error"); 
+    }
 });
+
+// 6. Handle Delete Nutrition
+async function deleteNutrition(id) {
+    if(!confirm("Are you sure you want to delete this item?")) return;
+    try {
+        const res = await fetch(`${API_BASE_URL}/admin/nutrition/${id}`, { method: 'DELETE' });
+        const data = await res.json();
+        if(data.success) {
+            showToast(data.message, "success");
+            loadAdminNutrition();
+            loadUserNutrition();
+        }
+    } catch(e) { 
+        console.error(e); 
+        showToast("Error deleting item", "error"); 
+    }
+}     
