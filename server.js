@@ -259,6 +259,8 @@ app.post('/api/membership/submit', upload.fields([
     { name: 'govIdFile', maxCount: 1 },
     { name: 'signatureFile', maxCount: 1 },
     { name: 'paymentScreenshotFile', maxCount: 1 }
+    { name: 'signatureFile', maxCount: 1 },
+    { name: 'paymentScreenshotFile', maxCount: 1 }
 ]), async (req, res) => {
     // Destructure ALL new fields
     const { 

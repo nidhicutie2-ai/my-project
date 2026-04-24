@@ -11,6 +11,9 @@
     --status-pending: #ffc107;
     --status-approved: #28a745;
     --status-rejected: #dc3545;
+    --status-pending: #ffc107;
+    --status-approved: #28a745;
+    --status-rejected: #dc3545;
 }
 
 * { margin: 0; padding: 0; box-sizing: border-box; }
